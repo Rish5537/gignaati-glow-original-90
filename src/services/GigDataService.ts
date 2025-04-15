@@ -82,3 +82,23 @@ export const getGigById = async (id: string): Promise<Gig | null> => {
     return null;
   }
 };
+
+export const getFeaturedGigs = async (): Promise<Gig[]> => {
+  // Create an empty filter state with default values
+  const emptyFilters: FilterState = {
+    categories: [],
+    functions: [],
+    types: [],
+    llmModels: [],
+    hostingProviders: [],
+    industries: [],
+    integrations: [],
+    businessFunctions: [],
+    professions: [],
+    ratings: [],
+    priceRange: [0, 1000]
+  };
+  
+  // Use the existing function to get gigs, but with top ratings
+  return getFilteredAndSortedGigs("", "topRated", emptyFilters);
+};

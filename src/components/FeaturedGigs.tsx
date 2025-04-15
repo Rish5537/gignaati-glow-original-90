@@ -4,62 +4,20 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Play } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-type FeaturedGig = {
-  id: string;
-  title: string;
-  price: number;
-  rating: number;
-  reviews_count: number;
-  freelancer: string;
-  xp: string;
-  image: string;
-};
+import { getFeaturedGigs, Gig } from "../services/GigDataService";
 
 const FeaturedGigs = () => {
-  const [featuredGigs, setFeaturedGigs] = useState<FeaturedGig[]>([]);
+  const [featuredGigs, setFeaturedGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchFeaturedGigs = async () => {
       try {
-        // Get top 6 gigs with highest rating
-        const { data, error } = await supabase
-          .from('gigs')
-          .select(`
-            id,
-            title,
-            price,
-            rating,
-            reviews_count,
-            image_url,
-            experience_level,
-            profiles (
-              full_name
-            )
-          `)
-          .order('rating', { ascending: false })
-          .limit(6);
-
-        if (error) {
-          throw error;
-        }
-
-        const formattedGigs = data.map(gig => ({
-          id: gig.id,
-          title: gig.title,
-          price: gig.price,
-          rating: gig.rating || 0,
-          reviews_count: gig.reviews_count || 0,
-          freelancer: gig.profiles.full_name || 'Anonymous Freelancer',
-          xp: gig.experience_level || 'Intermediate',
-          image: gig.image_url || 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
-        }));
-
-        setFeaturedGigs(formattedGigs);
+        // Get featured gigs using our service
+        const gigs = await getFeaturedGigs();
+        setFeaturedGigs(gigs.slice(0, 6)); // Ensure we only get 6 gigs
       } catch (error) {
         console.error('Error fetching featured gigs:', error);
         toast({
