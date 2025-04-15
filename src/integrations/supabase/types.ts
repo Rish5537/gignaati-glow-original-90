@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          resource_id: string | null
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resource_id?: string | null
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gigs: {
         Row: {
           business_functions: string[] | null
@@ -82,6 +112,118 @@ export type Database = {
             columns: ["freelancer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kras: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ops_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          kra_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kra_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kra_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_assignments_kra_id_fkey"
+            columns: ["kra_id"]
+            isOneToOne: false
+            referencedRelation: "kras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_tasks: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          escalated_to: string | null
+          escalation_count: number | null
+          escalation_reason: string | null
+          id: string
+          kra_id: string | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          escalated_to?: string | null
+          escalation_count?: number | null
+          escalation_reason?: string | null
+          id?: string
+          kra_id?: string | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          escalated_to?: string | null
+          escalation_count?: number | null
+          escalation_reason?: string | null
+          id?: string
+          kra_id?: string | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_tasks_kra_id_fkey"
+            columns: ["kra_id"]
+            isOneToOne: false
+            referencedRelation: "kras"
             referencedColumns: ["id"]
           },
         ]
@@ -225,15 +367,54 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          user_id: string
+          required_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          action: string
+          resource_type: string
+          resource_id: string
+          details: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "ops_team" | "creator" | "buyer" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -348,6 +529,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "ops_team", "creator", "buyer", "moderator"],
+    },
   },
 } as const
