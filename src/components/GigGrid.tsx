@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { FilterState } from './GigFilters';
+import { FilterState } from '../services/types';
 import GigCard from './GigCard';
 import PaginationControls from './PaginationControls';
 import EmptyGigsState from './EmptyGigsState';
