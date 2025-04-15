@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { KRA, OpsAssignment, OpsTask, AuditLog } from "./types/rbac";
 
@@ -177,14 +176,22 @@ export const getOpsTasks = async (options?: {
     const status = item.status as 'pending' | 'in_progress' | 'completed' | 'escalated';
     const priority = item.priority as 'low' | 'medium' | 'high' | 'critical';
     
+    // Check if profiles is a valid object before accessing its properties
+    const assignee = typeof item.profiles === 'object' && item.profiles !== null 
+      ? {
+          // Add null fallbacks and type guards
+          full_name: item.profiles && 'full_name' in item.profiles ? 
+            (item.profiles.full_name as string || '') : '',
+          avatar_url: item.profiles && 'avatar_url' in item.profiles ? 
+            item.profiles.avatar_url as string | null : null
+        }
+      : undefined;
+    
     return {
       ...item,
       status,
       priority,
-      assignee: item.profiles ? {
-        full_name: item.profiles.full_name || '',
-        avatar_url: item.profiles.avatar_url
-      } : undefined,
+      assignee,
       kra: item.kras ? {
         id: item.kras.id,
         name: item.kras.name,
@@ -355,14 +362,23 @@ export const getAuditLogs = async (options?: {
     return [];
   }
 
-  return data.map(item => ({
-    ...item,
-    // Convert details from Json to Record<string, any>
-    details: item.details as Record<string, any> | null,
-    user: item.profiles ? {
-      full_name: item.profiles.full_name || ''
-    } : undefined
-  })) || [];
+  return data.map(item => {
+    // Check if profiles is a valid object before accessing its properties
+    const user = typeof item.profiles === 'object' && item.profiles !== null
+      ? {
+          // Add null fallbacks and type guards
+          full_name: item.profiles && 'full_name' in item.profiles ? 
+            (item.profiles.full_name as string || '') : ''
+        }
+      : undefined;
+    
+    return {
+      ...item,
+      // Convert details from Json to Record<string, any>
+      details: item.details as Record<string, any> | null,
+      user
+    };
+  }) || [];
 };
 
 // Log an audit event
