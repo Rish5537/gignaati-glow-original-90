@@ -66,10 +66,10 @@ export const getOpsTasks = async (options?: {
     const profilesData = item.profiles;
     let assignee;
     
-    if (profilesData && typeof profilesData === 'object' && profilesData !== null) {
+    if (profilesData && typeof profilesData === 'object') {
       // Only add the user property if profilesData exists and has full_name/avatar_url properties
-      const fullName = 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
-      const avatarUrl = 'avatar_url' in profilesData ? (profilesData.avatar_url as string | null) : null;
+      const fullName = profilesData && 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
+      const avatarUrl = profilesData && 'avatar_url' in profilesData ? (profilesData.avatar_url as string | null) : null;
       
       assignee = {
         full_name: fullName,

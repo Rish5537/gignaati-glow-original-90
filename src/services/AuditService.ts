@@ -1,87 +1,79 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AuditLog } from "./types/rbac";
 
-// Get audit logs (admin only or ops team member's own logs)
-export const getAuditLogs = async (options?: { 
-  userId?: string,
-  resourceType?: string,
-  limit?: number
-}): Promise<AuditLog[]> => {
-  let query = supabase
+// Log an audit event
+export const logAuditEvent = async (
+  action: string,
+  resourceType: string,
+  resourceId: string,
+  details: any
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .rpc('log_audit_event', { 
+        action, 
+        resource_type: resourceType, 
+        resource_id: resourceId, 
+        details 
+      });
+
+    if (error) {
+      console.error('Error logging audit event:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error logging audit event:', error);
+    return null;
+  }
+};
+
+// Get all audit logs
+export const getAuditLogs = async (
+  limit: number = 50, 
+  offset: number = 0
+): Promise<AuditLog[]> => {
+  const { data, error } = await supabase
     .from('audit_logs')
     .select(`
       id,
-      user_id,
       action,
       resource_type,
       resource_id,
+      user_id,
       details,
       created_at,
       profiles!user_id (
-        full_name
+        full_name,
+        avatar_url
       )
-    `);
-
-  if (options?.userId) {
-    query = query.eq('user_id', options.userId);
-  }
-
-  if (options?.resourceType) {
-    query = query.eq('resource_type', options.resourceType);
-  }
-
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false });
+    `)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     console.error('Error fetching audit logs:', error);
     return [];
   }
 
-  return data.map(item => {
-    // Type check and safely access profiles 
-    const profilesData = item.profiles;
+  return data.map(log => {
+    const profilesData = log.profiles;
     let user;
     
-    if (profilesData && typeof profilesData === 'object' && profilesData !== null) {
-      // Only add the user property if profilesData exists and has a full_name property
-      const fullName = 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
+    if (profilesData && typeof profilesData === 'object') {
+      const fullName = profilesData && 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
+      const avatarUrl = profilesData && 'avatar_url' in profilesData ? (profilesData.avatar_url as string | null) : null;
       
       user = {
-        full_name: fullName
+        full_name: fullName,
+        avatar_url: avatarUrl
       };
     }
-    
+
     return {
-      ...item,
-      // Convert details from Json to Record<string, any>
-      details: item.details as Record<string, any> | null,
+      ...log,
       user
     };
   }) || [];
-};
-
-// Log an audit event
-export const logAuditEvent = async (
-  action: string,
-  resourceType: string,
-  resourceId?: string | null,
-  details?: Record<string, any>
-): Promise<boolean> => {
-  try {
-    await supabase.rpc('log_audit_event', { 
-      action, 
-      resource_type: resourceType, 
-      resource_id: resourceId, 
-      details
-    });
-    return true;
-  } catch (error) {
-    console.error('Error logging audit event:', error);
-    return false;
-  }
 };
