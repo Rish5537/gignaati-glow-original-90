@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Trash, Plus, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { KRA } from "@/services/types/rbac";
-import { getAllKRAs } from "@/services/OpsService";
+// Update import to use the new service file directly
+import { getAllKRAs } from "@/services/KRAService";
 import { supabase } from "@/integrations/supabase/client";
 
 const KRAManagement = () => {

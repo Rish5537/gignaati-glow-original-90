@@ -15,7 +15,9 @@ import { Input } from "@/components/ui/input";
 import { AlertCircle, ArrowUpRight, CheckCircle, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OpsTask, KRA } from "@/services/types/rbac";
-import { getOpsTasks, getAllKRAs } from "@/services/OpsService";
+// Update imports to use the new service files directly
+import { getOpsTasks } from "@/services/TaskService";
+import { getAllKRAs } from "@/services/KRAService";
 import { useAuth } from "@/hooks/useAuth";
 
 const statusIcons = {

@@ -21,7 +21,9 @@ import {
 import { Trash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { KRA, OpsAssignment } from "@/services/types/rbac";
-import { getAllKRAs, getOpsAssignments, assignKRA, removeKRAAssignment } from "@/services/OpsService";
+// Update imports to use the new service files directly
+import { getAllKRAs } from "@/services/KRAService";
+import { getOpsAssignments, assignKRA, removeKRAAssignment } from "@/services/AssignmentService";
 import { supabase } from "@/integrations/supabase/client";
 
 interface User {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { AuditLog } from "@/services/types/rbac";
-import { getAuditLogs } from "@/services/OpsService";
+import { getAuditLogs } from "@/services/AuditService";
 
 const actionColors: Record<string, string> = {
   create: "bg-green-100 text-green-800",
@@ -41,7 +40,6 @@ const AuditLogViewer = () => {
   const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>([]);
   const { toast } = useToast();
 
-  // Get unique resource types for the filter dropdown
   const resourceTypes = Array.from(new Set(logs.map(log => log.resource_type)));
 
   useEffect(() => {
