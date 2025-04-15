@@ -43,14 +43,18 @@ export const getAuditLogs = async (options?: {
   }
 
   return data.map(item => {
-    // Check if profiles is a valid object before accessing its properties
-    const user = typeof item.profiles === 'object' && item.profiles !== null
-      ? {
-          // Add null fallbacks and type guards
-          full_name: typeof item.profiles === 'object' && item.profiles !== null && 'full_name' in item.profiles ? 
-            String(item.profiles.full_name || '') : ''
-        }
-      : undefined;
+    // Type check and safely access profiles 
+    const profilesData = item.profiles;
+    let user;
+    
+    if (profilesData && typeof profilesData === 'object' && profilesData !== null) {
+      // Only add the user property if profilesData exists and has a full_name property
+      const fullName = 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
+      
+      user = {
+        full_name: fullName
+      };
+    }
     
     return {
       ...item,

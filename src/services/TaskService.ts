@@ -62,16 +62,20 @@ export const getOpsTasks = async (options?: {
     const status = item.status as 'pending' | 'in_progress' | 'completed' | 'escalated';
     const priority = item.priority as 'low' | 'medium' | 'high' | 'critical';
     
-    // Check if profiles is a valid object before accessing its properties
-    const assignee = typeof item.profiles === 'object' && item.profiles !== null 
-      ? {
-          // Add null fallbacks and type guards
-          full_name: typeof item.profiles === 'object' && item.profiles !== null && 'full_name' in item.profiles ? 
-            String(item.profiles.full_name || '') : '',
-          avatar_url: typeof item.profiles === 'object' && item.profiles !== null && 'avatar_url' in item.profiles ? 
-            (item.profiles.avatar_url as string | null) : null
-        }
-      : undefined;
+    // Type check and safely access profiles 
+    const profilesData = item.profiles;
+    let assignee;
+    
+    if (profilesData && typeof profilesData === 'object' && profilesData !== null) {
+      // Only add the user property if profilesData exists and has full_name/avatar_url properties
+      const fullName = 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
+      const avatarUrl = 'avatar_url' in profilesData ? (profilesData.avatar_url as string | null) : null;
+      
+      assignee = {
+        full_name: fullName,
+        avatar_url: avatarUrl
+      };
+    }
     
     return {
       ...item,
