@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Play } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Gig } from './GigGrid';
+import { Gig } from '../services/GigDataService';
 
 interface GigCardProps {
   gig: Gig;
@@ -42,7 +42,7 @@ const GigCard = ({ gig }: GigCardProps) => {
           <div className="flex items-center">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
             <span className="ml-1 font-medium">{gig.rating}</span>
-            <span className="text-gray-500 ml-1">({gig.reviews})</span>
+            <span className="text-gray-500 ml-1">({gig.reviews_count})</span>
           </div>
         </div>
         
