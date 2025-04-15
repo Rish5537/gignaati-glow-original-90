@@ -1,10 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FilterState } from './GigFilters';
 import GigCard from './GigCard';
 import PaginationControls from './PaginationControls';
 import EmptyGigsState from './EmptyGigsState';
 import { getFilteredAndSortedGigs, Gig } from '../services/GigDataService';
+import { useToast } from "@/hooks/use-toast";
 
 // Export the Gig type from this file since it's referenced in GigCard
 export type { Gig };
@@ -17,10 +18,31 @@ interface GigGridProps {
 
 const GigGrid = ({ searchQuery, sortBy, filters }: GigGridProps) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortedGigs, setSortedGigs] = useState<Gig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   const gigsPerPage = 9;
   
-  // Get filtered and sorted gigs
-  const sortedGigs = getFilteredAndSortedGigs(searchQuery, sortBy, filters);
+  useEffect(() => {
+    const fetchGigs = async () => {
+      setLoading(true);
+      try {
+        const gigs = await getFilteredAndSortedGigs(searchQuery, sortBy, filters);
+        setSortedGigs(gigs);
+      } catch (error) {
+        console.error('Error fetching gigs:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load gigs. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGigs();
+  }, [searchQuery, sortBy, filters, toast]);
   
   // Calculate pagination
   const totalPages = Math.ceil(sortedGigs.length / gigsPerPage);
@@ -36,7 +58,11 @@ const GigGrid = ({ searchQuery, sortBy, filters }: GigGridProps) => {
 
   return (
     <div>
-      {sortedGigs.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      ) : sortedGigs.length === 0 ? (
         <EmptyGigsState />
       ) : (
         <>

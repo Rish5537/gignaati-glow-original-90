@@ -9,7 +9,222 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      gigs: {
+        Row: {
+          business_functions: string[] | null
+          categories: string[] | null
+          created_at: string
+          description: string
+          experience_level: string | null
+          freelancer_id: string
+          functions: string[] | null
+          hosting_providers: string[] | null
+          id: string
+          image_url: string | null
+          industries: string[] | null
+          integrations: string[] | null
+          llm_models: string[] | null
+          price: number
+          professions: string[] | null
+          rating: number | null
+          reviews_count: number | null
+          title: string
+          types: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          business_functions?: string[] | null
+          categories?: string[] | null
+          created_at?: string
+          description: string
+          experience_level?: string | null
+          freelancer_id: string
+          functions?: string[] | null
+          hosting_providers?: string[] | null
+          id?: string
+          image_url?: string | null
+          industries?: string[] | null
+          integrations?: string[] | null
+          llm_models?: string[] | null
+          price: number
+          professions?: string[] | null
+          rating?: number | null
+          reviews_count?: number | null
+          title: string
+          types?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          business_functions?: string[] | null
+          categories?: string[] | null
+          created_at?: string
+          description?: string
+          experience_level?: string | null
+          freelancer_id?: string
+          functions?: string[] | null
+          hosting_providers?: string[] | null
+          id?: string
+          image_url?: string | null
+          industries?: string[] | null
+          integrations?: string[] | null
+          llm_models?: string[] | null
+          price?: number
+          professions?: string[] | null
+          rating?: number | null
+          reviews_count?: number | null
+          title?: string
+          types?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gigs_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          client_id: string
+          created_at: string
+          freelancer_id: string
+          gig_id: string
+          id: string
+          package_type: string
+          price: number
+          requirements: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          freelancer_id: string
+          gig_id: string
+          id?: string
+          package_type: string
+          price: number
+          requirements?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          freelancer_id?: string
+          gig_id?: string
+          id?: string
+          package_type?: string
+          price?: number
+          requirements?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          about: string | null
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          about?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          about?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          gig_id: string
+          id: string
+          rating: number
+          reviewer_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          gig_id: string
+          id?: string
+          rating: number
+          reviewer_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          gig_id?: string
+          id?: string
+          rating?: number
+          reviewer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
