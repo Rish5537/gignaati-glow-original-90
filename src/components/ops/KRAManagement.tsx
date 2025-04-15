@@ -2,14 +2,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Trash, Plus, Save, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { KRA } from "@/services/types/rbac";
-// Update import to use the new service file directly
 import { getAllKRAs } from "@/services/KRAService";
 import { supabase } from "@/integrations/supabase/client";
+import NewKRAForm from "./kra/NewKRAForm";
+import KRAList from "./kra/KRAList";
 
 const KRAManagement = () => {
   const [KRAs, setKRAs] = useState<KRA[]>([]);
@@ -34,6 +33,14 @@ const KRAManagement = () => {
   const handleAddNew = () => {
     setIsAddingNew(true);
     setNewKRA({ name: '', description: '' });
+  };
+
+  const handleNewKRAInputChange = (field: string, value: string) => {
+    setNewKRA({ ...newKRA, [field]: value });
+  };
+
+  const handleEditKRAInputChange = (field: string, value: string) => {
+    setEditKRA({ ...editKRA, [field]: value });
   };
 
   const handleSaveNew = async () => {
@@ -168,95 +175,24 @@ const KRAManagement = () => {
         ) : (
           <div className="space-y-4">
             {isAddingNew && (
-              <div className="border rounded-md p-4 bg-gray-50">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Name</label>
-                    <Input 
-                      value={newKRA.name} 
-                      onChange={e => setNewKRA({...newKRA, name: e.target.value})}
-                      placeholder="Enter KRA name"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Description</label>
-                    <Textarea 
-                      value={newKRA.description} 
-                      onChange={e => setNewKRA({...newKRA, description: e.target.value})}
-                      placeholder="Enter KRA description"
-                      rows={2}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={handleCancelNew}>
-                      <X className="mr-2 h-4 w-4" />
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveNew}>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <NewKRAForm
+                newKRA={newKRA}
+                onInputChange={handleNewKRAInputChange}
+                onSaveNew={handleSaveNew}
+                onCancelNew={handleCancelNew}
+              />
             )}
             
-            {KRAs.length === 0 && !isAddingNew ? (
-              <div className="text-center py-6 text-gray-500">
-                No KRAs found. Click "Add KRA" to create one.
-              </div>
-            ) : (
-              KRAs.map(kra => (
-                <div key={kra.id} className="border rounded-md p-4">
-                  {editingId === kra.id ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Name</label>
-                        <Input 
-                          value={editKRA.name} 
-                          onChange={e => setEditKRA({...editKRA, name: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Description</label>
-                        <Textarea 
-                          value={editKRA.description} 
-                          onChange={e => setEditKRA({...editKRA, description: e.target.value})}
-                          rows={2}
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={handleCancelEdit}>
-                          <X className="mr-2 h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button onClick={() => handleSaveEdit(kra.id)}>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{kra.name}</h3>
-                          {kra.description && <p className="text-gray-500 mt-1">{kra.description}</p>}
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="ghost" onClick={() => handleEdit(kra)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-red-500" onClick={() => handleDelete(kra.id)}>
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+            <KRAList
+              kras={KRAs}
+              editingId={editingId}
+              editKRA={editKRA}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onCancelEdit={handleCancelEdit}
+              onSaveEdit={handleSaveEdit}
+              onInputChange={handleEditKRAInputChange}
+            />
           </div>
         )}
       </CardContent>

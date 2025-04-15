@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { AuditLog } from "./types/rbac";
 
@@ -31,24 +32,14 @@ export const logAuditEvent = async (
 
 // Get all audit logs
 export const getAuditLogs = async (
-  limit: number = 50, 
-  offset: number = 0
+  params: { limit?: number, offset?: number } = {}
 ): Promise<AuditLog[]> => {
+  const limit = params.limit ?? 50;
+  const offset = params.offset ?? 0;
+  
   const { data, error } = await supabase
     .from('audit_logs')
-    .select(`
-      id,
-      action,
-      resource_type,
-      resource_id,
-      user_id,
-      details,
-      created_at,
-      profiles!user_id (
-        full_name,
-        avatar_url
-      )
-    `)
+    .select('*, profiles:user_id(*)')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -58,22 +49,21 @@ export const getAuditLogs = async (
   }
 
   return data.map(log => {
-    const profilesData = log.profiles;
-    let user;
+    // Safe access to profiles data with proper type handling
+    const userData = log.profiles as Record<string, any> | null;
     
-    if (profilesData && typeof profilesData === 'object') {
-      const fullName = profilesData && 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
-      const avatarUrl = profilesData && 'avatar_url' in profilesData ? (profilesData.avatar_url as string | null) : null;
-      
-      user = {
-        full_name: fullName,
-        avatar_url: avatarUrl
-      };
-    }
-
     return {
-      ...log,
-      user
+      id: log.id,
+      action: log.action,
+      resource_type: log.resource_type,
+      resource_id: log.resource_id,
+      user_id: log.user_id,
+      details: log.details as Record<string, any> | null,
+      created_at: log.created_at,
+      user: userData ? {
+        full_name: userData.full_name as string || '',
+        avatar_url: userData.avatar_url as string | null
+      } : undefined
     };
-  }) || [];
+  });
 };

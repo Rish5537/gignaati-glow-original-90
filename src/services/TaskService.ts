@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { OpsTask } from "./types/rbac";
 import { logAuditEvent } from "./AuditService";
@@ -11,32 +10,7 @@ export const getOpsTasks = async (options?: {
 }): Promise<OpsTask[]> => {
   let query = supabase
     .from('ops_tasks')
-    .select(`
-      id,
-      title,
-      description,
-      status,
-      priority,
-      assignee_id,
-      kra_id,
-      created_at,
-      updated_at,
-      due_date,
-      escalated_to,
-      escalation_reason,
-      escalation_count,
-      profiles!assignee_id (
-        full_name,
-        avatar_url
-      ),
-      kras!kra_id (
-        id,
-        name,
-        description,
-        created_at,
-        updated_at
-      )
-    `);
+    .select('*, profiles:assignee_id(*), kras:kra_id(*)');
 
   if (options?.userId) {
     query = query.eq('assignee_id', options.userId);
@@ -63,34 +37,26 @@ export const getOpsTasks = async (options?: {
     const priority = item.priority as 'low' | 'medium' | 'high' | 'critical';
     
     // Type check and safely access profiles 
-    const profilesData = item.profiles;
-    let assignee;
-    
-    if (profilesData && typeof profilesData === 'object') {
-      // Only add the user property if profilesData exists and has full_name/avatar_url properties
-      const fullName = profilesData && 'full_name' in profilesData ? String(profilesData.full_name || '') : '';
-      const avatarUrl = profilesData && 'avatar_url' in profilesData ? (profilesData.avatar_url as string | null) : null;
-      
-      assignee = {
-        full_name: fullName,
-        avatar_url: avatarUrl
-      };
-    }
+    const profileData = item.profiles as Record<string, any> | null;
+    const kraData = item.kras as Record<string, any> | null;
     
     return {
       ...item,
       status,
       priority,
-      assignee,
-      kra: item.kras ? {
-        id: item.kras.id,
-        name: item.kras.name,
-        description: item.kras.description,
-        created_at: item.kras.created_at,
-        updated_at: item.kras.updated_at
+      assignee: profileData ? {
+        full_name: profileData.full_name as string || '',
+        avatar_url: profileData.avatar_url as string | null
+      } : undefined,
+      kra: kraData ? {
+        id: kraData.id,
+        name: kraData.name,
+        description: kraData.description,
+        created_at: kraData.created_at,
+        updated_at: kraData.updated_at
       } : undefined
     };
-  }) || [];
+  });
 };
 
 // Create a new task

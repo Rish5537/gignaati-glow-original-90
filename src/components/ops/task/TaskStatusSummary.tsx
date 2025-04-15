@@ -16,21 +16,21 @@ const TaskStatusSummary: React.FC<TaskStatusSummaryProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-white rounded-lg border p-4 shadow-sm">
         <div className="text-sm text-gray-500 mb-1">Total Tasks</div>
         <div className="text-2xl font-bold">{totalCount}</div>
       </div>
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-white rounded-lg border p-4 shadow-sm">
         <div className="text-sm text-gray-500 mb-1">Pending</div>
-        <div className="text-2xl font-bold">{pendingCount}</div>
+        <div className="text-2xl font-bold text-amber-500">{pendingCount}</div>
       </div>
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-white rounded-lg border p-4 shadow-sm">
         <div className="text-sm text-gray-500 mb-1">In Progress</div>
-        <div className="text-2xl font-bold">{inProgressCount}</div>
+        <div className="text-2xl font-bold text-blue-500">{inProgressCount}</div>
       </div>
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-white rounded-lg border p-4 shadow-sm">
         <div className="text-sm text-gray-500 mb-1">Completed</div>
-        <div className="text-2xl font-bold">{completedCount}</div>
+        <div className="text-2xl font-bold text-green-500">{completedCount}</div>
       </div>
     </div>
   );
