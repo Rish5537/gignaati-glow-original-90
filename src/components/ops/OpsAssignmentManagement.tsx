@@ -93,10 +93,21 @@ const OpsAssignmentManagement = () => {
       if (error) throw error;
 
       // Transform to user objects
-      const users = data.map(item => ({
-        id: item.user_id,
-        full_name: item.profiles?.full_name
-      }));
+      const users: User[] = [];
+      
+      for (const item of data) {
+        if (item.profiles) {
+          users.push({
+            id: item.user_id,
+            full_name: (item.profiles as any).full_name || null
+          });
+        } else {
+          users.push({
+            id: item.user_id,
+            full_name: null
+          });
+        }
+      }
 
       setOpsTeamMembers(users);
     } catch (error) {

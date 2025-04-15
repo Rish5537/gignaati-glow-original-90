@@ -4,10 +4,17 @@ import { UserRole, UserRoleAssignment } from "./types/rbac";
 
 // Get all roles for the current user
 export const getCurrentUserRoles = async (): Promise<UserRole[]> => {
+  const session = await supabase.auth.getSession();
+  const userId = session.data.session?.user.id;
+  
+  if (!userId) {
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from('user_roles')
     .select('role')
-    .eq('user_id', supabase.auth.getSession().then(({ data }) => data.session?.user.id));
+    .eq('user_id', userId);
 
   if (error) {
     console.error('Error fetching user roles:', error);

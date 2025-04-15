@@ -30,7 +30,9 @@ export const getOpsAssignments = async (userId?: string): Promise<OpsAssignment[
       kras (
         id,
         name,
-        description
+        description,
+        created_at,
+        updated_at
       )
     `);
 
@@ -47,7 +49,13 @@ export const getOpsAssignments = async (userId?: string): Promise<OpsAssignment[
 
   return data.map(item => ({
     ...item,
-    kra: item.kras
+    kra: item.kras ? {
+      id: item.kras.id,
+      name: item.kras.name,
+      description: item.kras.description,
+      created_at: item.kras.created_at,
+      updated_at: item.kras.updated_at
+    } : undefined
   })) || [];
 };
 
@@ -139,7 +147,9 @@ export const getOpsTasks = async (options?: {
       kras!kra_id (
         id,
         name,
-        description
+        description,
+        created_at,
+        updated_at
       )
     `);
 
@@ -162,11 +172,28 @@ export const getOpsTasks = async (options?: {
     return [];
   }
 
-  return data.map(item => ({
-    ...item,
-    assignee: item.profiles,
-    kra: item.kras
-  })) || [];
+  return data.map(item => {
+    // Ensure status is strictly typed
+    const status = item.status as 'pending' | 'in_progress' | 'completed' | 'escalated';
+    const priority = item.priority as 'low' | 'medium' | 'high' | 'critical';
+    
+    return {
+      ...item,
+      status,
+      priority,
+      assignee: item.profiles ? {
+        full_name: item.profiles.full_name || '',
+        avatar_url: item.profiles.avatar_url
+      } : undefined,
+      kra: item.kras ? {
+        id: item.kras.id,
+        name: item.kras.name,
+        description: item.kras.description,
+        created_at: item.kras.created_at,
+        updated_at: item.kras.updated_at
+      } : undefined
+    };
+  }) || [];
 };
 
 // Create a new task
@@ -198,7 +225,14 @@ export const createTask = async (task: Partial<OpsTask>): Promise<OpsTask | null
     { title: task.title }
   );
 
-  return data;
+  // Type cast to ensure status and priority are properly typed
+  const result: OpsTask = {
+    ...data,
+    status: data.status as 'pending' | 'in_progress' | 'completed' | 'escalated',
+    priority: data.priority as 'low' | 'medium' | 'high' | 'critical'
+  };
+
+  return result;
 };
 
 // Update a task
@@ -323,7 +357,11 @@ export const getAuditLogs = async (options?: {
 
   return data.map(item => ({
     ...item,
-    user: item.profiles
+    // Convert details from Json to Record<string, any>
+    details: item.details as Record<string, any> | null,
+    user: item.profiles ? {
+      full_name: item.profiles.full_name || ''
+    } : undefined
   })) || [];
 };
 
