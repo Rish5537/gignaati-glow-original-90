@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,17 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import LocationForm from './LocationForm';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-
-export interface Location {
-  id: string;
-  name: string;
-  code: string;
-  type: 'country' | 'state' | 'city';
-  parent_id: string | null;
-  launch_date: string | null;
-  is_active: boolean;
-  created_at: string;
-}
+import { Location } from '@/types/supabase';
 
 const LocationList = () => {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -104,7 +93,6 @@ const LocationList = () => {
     return parent ? parent.name : 'Unknown';
   };
 
-  // Check if a location is scheduled for future launch
   const isScheduledForFuture = (launchDate: string | null) => {
     if (!launchDate) return false;
     return new Date(launchDate) > new Date();

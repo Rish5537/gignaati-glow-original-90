@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,16 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import CategoryForm from './CategoryForm';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-
-export interface Category {
-  id: string;
-  name: string;
-  description: string;
-  parent_id: string | null;
-  icon_url: string | null;
-  is_active: boolean;
-  created_at: string;
-}
+import { Category } from '@/types/supabase';
 
 const CategoryList = () => {
   const [categories, setCategories] = useState<Category[]>([]);

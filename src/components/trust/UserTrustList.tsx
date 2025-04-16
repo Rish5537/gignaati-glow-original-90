@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,25 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-export interface UserTrust {
-  id: string;
-  user_id: string;
-  trust_score: number;
-  warning_count: number;
-  suspension_count: number;
-  is_suspended: boolean;
-  suspension_reason: string | null;
-  suspension_until: string | null;
-  last_warning_at: string | null;
-  created_at: string;
-  updated_at: string;
-  profile?: {
-    full_name: string;
-    avatar_url: string | null;
-    username: string | null;
-  };
-}
+import { UserTrust } from '@/types/supabase';
 
 const UserTrustList = () => {
   const [users, setUsers] = useState<UserTrust[]>([]);

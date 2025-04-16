@@ -75,6 +75,166 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispute_events: {
+        Row: {
+          content: string
+          created_at: string
+          dispute_id: string
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          dispute_id: string
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          dispute_id?: string
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_events_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          description: string
+          id: string
+          priority: string
+          related_entity_id: string
+          related_entity_type: string
+          reporter_id: string
+          resolution: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string
+          related_entity_id: string
+          related_entity_type: string
+          reporter_id: string
+          resolution?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string
+          related_entity_id?: string
+          related_entity_type?: string
+          reporter_id?: string
+          resolution?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      flagged_content: {
+        Row: {
+          assignee_id: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          resolution: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          resolution?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          resolution?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gig_packages: {
         Row: {
           created_at: string
@@ -222,6 +382,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      locations: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          parent_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_logs: {
         Row: {
@@ -628,6 +829,42 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_trust_records: {
+        Row: {
+          created_at: string
+          id: string
+          last_warning_date: string | null
+          status: string
+          suspension_history: Json | null
+          trust_score: number
+          updated_at: string
+          user_id: string
+          warning_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_warning_date?: string | null
+          status?: string
+          suspension_history?: Json | null
+          trust_score?: number
+          updated_at?: string
+          user_id: string
+          warning_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_warning_date?: string | null
+          status?: string
+          suspension_history?: Json | null
+          trust_score?: number
+          updated_at?: string
+          user_id?: string
+          warning_count?: number
         }
         Relationships: []
       }

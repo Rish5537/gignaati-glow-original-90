@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,18 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-export interface FlaggedContent {
-  id: string;
-  content_type: 'gig' | 'message' | 'profile' | 'review';
-  content_id: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  reporter_id: string;
-  created_at: string;
-  content_preview: string;
-  reporter_name: string;
-}
+import { FlaggedContent } from '@/types/supabase';
 
 const FlaggedContentList = () => {
   const [flaggedItems, setFlaggedItems] = useState<FlaggedContent[]>([]);

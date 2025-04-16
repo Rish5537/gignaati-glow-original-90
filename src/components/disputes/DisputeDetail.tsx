@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -10,7 +9,6 @@ import {
   CardDescription
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dispute } from './DisputeList';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -37,19 +35,7 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-interface TimelineEvent {
-  id: string;
-  type: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  dispute_id: string;
-  user_profile?: {
-    full_name: string;
-    avatar_url: string | null;
-  };
-}
+import { Dispute, DisputeEvent } from '@/types/supabase';
 
 interface DisputeDetailProps {
   dispute: Dispute;
@@ -64,7 +50,7 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
   const [newStatus, setNewStatus] = useState(dispute.status);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [timeline, setTimeline] = useState<DisputeEvent[]>([]);
   const { toast } = useToast();
 
   const fetchTimelineEvents = async () => {
@@ -93,7 +79,6 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
     }
   };
 
-  // Fetch timeline on component mount
   React.useEffect(() => {
     fetchTimelineEvents();
   }, [dispute.id]);
@@ -103,7 +88,6 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
     
     setIsSubmitting(true);
     try {
-      // Add comment to dispute events
       const { error: commentError } = await supabase
         .from('dispute_events')
         .insert({
@@ -115,7 +99,6 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
         
       if (commentError) throw commentError;
 
-      // Reset comment input and refresh timeline
       setComment('');
       fetchTimelineEvents();
       
@@ -148,7 +131,6 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
         updates.resolution = resolution;
       }
       
-      // Update dispute record
       const { error: updateError, data: updatedData } = await supabase
         .from('disputes')
         .update(updates)
@@ -158,7 +140,6 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
         
       if (updateError) throw updateError;
 
-      // Add status change to timeline
       const { error: eventError } = await supabase
         .from('dispute_events')
         .insert({
@@ -170,7 +151,6 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
         
       if (eventError) throw eventError;
 
-      // Update local state
       setUpdatedDispute({
         ...updatedDispute,
         ...updates

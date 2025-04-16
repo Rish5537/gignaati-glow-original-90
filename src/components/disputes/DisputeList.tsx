@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,31 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-export interface Dispute {
-  id: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high';
-  created_at: string;
-  updated_at: string;
-  reporter_id: string;
-  assignee_id: string | null;
-  resolution: string | null;
-  related_entity_type: 'gig' | 'order' | 'user' | 'payment';
-  related_entity_id: string;
-  reporter_profile?: {
-    full_name: string;
-    avatar_url: string | null;
-    username: string | null;
-  };
-  assignee_profile?: {
-    full_name: string;
-    avatar_url: string | null;
-    username: string | null;
-  };
-}
+import { Dispute } from '@/types/supabase';
 
 const DisputeList = () => {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
