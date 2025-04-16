@@ -58,23 +58,15 @@ export const useUserManagement = () => {
       // Handle user roles with error protection
       let userRolesData: any[] = [];
       try {
+        // Fix #1: Instead of using RPC, query user_roles table directly
         const { data: userRoles, error: rolesError } = await supabase
-          .rpc('get_user_roles');
+          .from('user_roles')
+          .select('user_id, role');
         
         if (!rolesError && userRoles) {
           userRolesData = userRoles;
         } else {
           console.warn("Could not fetch user roles:", rolesError);
-          // Try direct query if RPC fails
-          const { data: directRoles, error: directError } = await supabase
-            .from('user_roles')
-            .select('user_id, role');
-          
-          if (!directError) {
-            userRolesData = directRoles || [];
-          } else {
-            console.warn("Direct roles query failed:", directError);
-          }
         }
       } catch (rolesFetchError) {
         console.error("Error in user roles fetch:", rolesFetchError);
