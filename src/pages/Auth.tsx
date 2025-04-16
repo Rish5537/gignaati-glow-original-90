@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -31,8 +32,13 @@ const Auth = () => {
   useEffect(() => {
     // Check if user is already logged in
     if (user) {
-      // User is already logged in, redirect based on role
-      handleRoleBasedRedirection();
+      console.log("User already logged in, redirecting...", user);
+      console.log("User roles:", userRoles);
+      
+      // Only redirect if not in MFA step
+      if (authStep !== AuthStep.MFA) {
+        handleRoleBasedRedirection();
+      }
     }
   }, [user, userRoles]);
 

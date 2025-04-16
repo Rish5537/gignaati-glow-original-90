@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UserRole } from "@/services/types/rbac";
+import { setRole } from "@/services/UserRoleService";
 
 export const useUserManagement = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -55,10 +56,9 @@ export const useUserManagement = () => {
         });
       }
 
-      // Handle user roles with error protection
+      // Fix: Query user_roles directly instead of using RPC
       let userRolesData: any[] = [];
       try {
-        // Fix #1: Instead of using RPC, query user_roles table directly
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('user_id, role');
@@ -215,6 +215,3 @@ export const useUserManagement = () => {
     handleQuickRoleChange
   };
 };
-
-// Import the setRole function from UserRoleService
-import { setRole } from "@/services/UserRoleService";

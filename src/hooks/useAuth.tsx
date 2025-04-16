@@ -35,11 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Update state with session information
         setSession(session);
         setUser(session?.user ?? null);
         
+        // If there's a valid user, fetch their roles
         if (session?.user) {
-          // Load roles after a short delay to prevent recursion with Supabase client
+          // Use setTimeout to prevent recursion with Supabase client
           setTimeout(() => {
             fetchUserRoles(session.user.id);
           }, 0);
@@ -65,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
-      // Use UserRoleService instead of direct query
+      // Use direct service for fetching roles to avoid recursion issues
       const roles = await getUserRoles(userId);
       setUserRoles(roles);
     } catch (error) {
@@ -74,12 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Simple helper to check if user has a given role
   const hasRole = (role: UserRole) => {
     return userRoles.includes(role);
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setUserRoles([]);
   };
 
   // Compute access permissions
