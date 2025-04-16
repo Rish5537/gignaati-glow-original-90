@@ -24,7 +24,11 @@ export const getUserNotifications = async (): Promise<Notification[]> => {
     return [];
   }
   
-  return data || [];
+  // Cast the status to the specific union type expected
+  return data?.map(notification => ({
+    ...notification,
+    status: notification.status as 'read' | 'unread'
+  })) || [];
 };
 
 export const markNotificationAsRead = async (notificationId: string): Promise<boolean> => {

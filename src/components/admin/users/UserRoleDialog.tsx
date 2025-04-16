@@ -9,13 +9,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserRole } from '@/services/types/rbac';
 
 interface UserRoleDialogProps {
   showDialog: boolean;
   setShowDialog: (show: boolean) => void;
   selectedUser: any;
-  selectedRole: string;
-  setSelectedRole: (role: string) => void;
+  selectedRole: UserRole;
+  setSelectedRole: (role: UserRole) => void;
   onAssignRole: () => void;
 }
 
@@ -43,7 +44,7 @@ const UserRoleDialog: React.FC<UserRoleDialogProps> = ({
             <p className="text-sm font-medium">Role</p>
             <Select
               value={selectedRole}
-              onValueChange={setSelectedRole}
+              onValueChange={(value) => setSelectedRole(value as UserRole)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a role" />
@@ -51,16 +52,16 @@ const UserRoleDialog: React.FC<UserRoleDialogProps> = ({
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="moderator">Moderator</SelectItem>
-                <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="ops_team">Employee</SelectItem>
+                <SelectItem value="buyer">User</SelectItem>
               </SelectContent>
             </Select>
             
             <p className="text-xs text-gray-500 mt-1">
               {selectedRole === 'admin' && 'Admins have full access to all features and settings.'}
               {selectedRole === 'moderator' && 'Moderators can review and manage content.'}
-              {selectedRole === 'employee' && 'Employees have access to internal tools.'}
-              {selectedRole === 'user' && 'Regular users with standard permissions.'}
+              {selectedRole === 'ops_team' && 'Operations team members have access to internal tools.'}
+              {selectedRole === 'buyer' && 'Regular users with standard permissions.'}
             </p>
           </div>
         </div>

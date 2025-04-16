@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import UserRoleDialog from "./UserRoleDialog";
+import { UserRole } from "@/services/types/rbac";
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -18,7 +19,7 @@ const UserManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [selectedRole, setSelectedRole] = useState<UserRole>("user");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
@@ -90,7 +91,8 @@ const UserManagement: React.FC = () => {
   // Handle user role assignment
   const handleOpenRoleDialog = (user: any) => {
     setSelectedUser(user);
-    setSelectedRole(user.roles?.length > 0 ? user.roles[0] : "user");
+    // Ensure the selected role is a valid UserRole type
+    setSelectedRole((user.roles?.length > 0 ? user.roles[0] : "user") as UserRole);
     setShowRoleDialog(true);
   };
   
@@ -104,12 +106,12 @@ const UserManagement: React.FC = () => {
         .delete()
         .eq('user_id', selectedUser.id);
       
-      // Then add the new role
+      // Then add the new role, ensuring it's a valid UserRole
       const { error } = await supabase
         .from('user_roles')
         .insert({
           user_id: selectedUser.id,
-          role: selectedRole
+          role: selectedRole as UserRole
         });
       
       if (error) throw error;
