@@ -19,7 +19,7 @@ export interface Location {
   launch_date: string | null;
   is_active: boolean;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface Dispute {

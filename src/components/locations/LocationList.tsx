@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +33,14 @@ const LocationList = () => {
         throw error;
       }
       
-      setLocations(data || []);
+      // Initialize missing fields if they don't exist yet
+      const locationsWithDefaults = data?.map(location => ({
+        ...location,
+        code: location.code || location.country_code || '',
+        launch_date: location.launch_date || null
+      }));
+      
+      setLocations(locationsWithDefaults as Location[]);
     } catch (error) {
       console.error('Error fetching locations:', error);
       toast({

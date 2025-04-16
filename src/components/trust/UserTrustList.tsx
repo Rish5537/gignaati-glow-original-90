@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,7 +48,7 @@ const UserTrustList = () => {
     setIsLoading(true);
     try {
       let query = supabase
-        .from('user_trust')
+        .from('user_trust_records')
         .select(`
           *,
           profile:profiles!user_id(*)
@@ -55,11 +56,11 @@ const UserTrustList = () => {
       
       // Apply filters
       if (statusFilter === 'suspended') {
-        query = query.eq('is_suspended', true);
+        query = query.eq('status', 'suspended');
       } else if (statusFilter === 'active') {
-        query = query.eq('is_suspended', false);
+        query = query.eq('status', 'active');
       } else if (statusFilter === 'warned') {
-        query = query.gt('warning_count', 0).eq('is_suspended', false);
+        query = query.gt('warning_count', 0).eq('status', 'active');
       }
       
       // Apply sorting
@@ -71,7 +72,25 @@ const UserTrustList = () => {
         throw error;
       }
       
-      setUsers(data || []);
+      // Transform data to match the UserTrust interface
+      const transformedData = data?.map(record => ({
+        id: record.id,
+        user_id: record.user_id,
+        trust_score: record.trust_score || 100,
+        warning_count: record.warning_count || 0,
+        suspension_count: (record.suspension_history as any[])?.length || 0,
+        is_suspended: record.status === 'suspended',
+        suspension_reason: record.status === 'suspended' ? 
+          (record.suspension_history as any[])?.[0]?.reason || null : null,
+        suspension_until: record.status === 'suspended' ? 
+          (record.suspension_history as any[])?.[0]?.until || null : null,
+        last_warning_at: record.last_warning_date,
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+        profile: record.profile
+      }));
+      
+      setUsers(transformedData as UserTrust[]);
     } catch (error) {
       console.error('Error fetching user trust data:', error);
       toast({
@@ -91,30 +110,35 @@ const UserTrustList = () => {
       const suspensionUntil = new Date();
       suspensionUntil.setDate(suspensionUntil.getDate() + suspensionDays);
       
+      // Get current suspension history
+      const { data: userData, error: fetchError } = await supabase
+        .from('user_trust_records')
+        .select('suspension_history')
+        .eq('id', selectedUser.id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Update with new suspension data
+      const suspensionHistory = [
+        ...(userData?.suspension_history || []),
+        {
+          reason: actionReason,
+          until: suspensionUntil.toISOString(),
+          created_at: new Date().toISOString()
+        }
+      ];
+      
       const { error } = await supabase
-        .from('user_trust')
+        .from('user_trust_records')
         .update({
-          is_suspended: true,
-          suspension_reason: actionReason,
-          suspension_until: suspensionUntil.toISOString(),
-          suspension_count: selectedUser.suspension_count + 1,
+          status: 'suspended',
+          suspension_history: suspensionHistory,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedUser.id);
         
       if (error) throw error;
-      
-      // Add record to user warnings table
-      const { error: warningError } = await supabase
-        .from('user_warnings')
-        .insert({
-          user_id: selectedUser.user_id,
-          type: 'suspension',
-          reason: actionReason,
-          expires_at: suspensionUntil.toISOString()
-        });
-        
-      if (warningError) throw warningError;
       
       // Update local state
       setUsers(prevUsers => 

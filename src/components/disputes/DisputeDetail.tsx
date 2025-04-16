@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Card, 
@@ -47,7 +47,9 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
   const [activeTab, setActiveTab] = useState('details');
   const [comment, setComment] = useState('');
   const [resolution, setResolution] = useState(dispute.resolution || '');
-  const [newStatus, setNewStatus] = useState(dispute.status);
+  const [newStatus, setNewStatus] = useState<'pending' | 'in_progress' | 'resolved' | 'closed'>(
+    dispute.status as 'pending' | 'in_progress' | 'resolved' | 'closed'
+  );
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeline, setTimeline] = useState<DisputeEvent[]>([]);
@@ -68,7 +70,7 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
         throw error;
       }
       
-      setTimeline(data || []);
+      setTimeline((data as unknown) as DisputeEvent[]);
     } catch (error) {
       console.error('Error fetching timeline events:', error);
       toast({
@@ -378,7 +380,7 @@ const DisputeDetail = ({ dispute, onClose }: DisputeDetailProps) => {
                   <Label htmlFor="status">Update Status</Label>
                   <Select 
                     value={newStatus} 
-                    onValueChange={setNewStatus}
+                    onValueChange={(value: 'pending' | 'in_progress' | 'resolved' | 'closed') => setNewStatus(value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />

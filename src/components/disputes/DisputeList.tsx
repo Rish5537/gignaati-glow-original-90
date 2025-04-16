@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -68,7 +69,8 @@ const DisputeList = () => {
         throw error;
       }
       
-      setDisputes(data || []);
+      // Cast the data to make TypeScript happy
+      setDisputes((data as unknown) as Dispute[]);
     } catch (error) {
       console.error('Error fetching disputes:', error);
       toast({

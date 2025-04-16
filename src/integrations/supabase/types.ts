@@ -385,30 +385,36 @@ export type Database = {
       }
       locations: {
         Row: {
+          code: string | null
           country_code: string | null
           created_at: string
           id: string
           is_active: boolean
+          launch_date: string | null
           name: string
           parent_id: string | null
           type: string
           updated_at: string
         }
         Insert: {
+          code?: string | null
           country_code?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          launch_date?: string | null
           name: string
           parent_id?: string | null
           type: string
           updated_at?: string
         }
         Update: {
+          code?: string | null
           country_code?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          launch_date?: string | null
           name?: string
           parent_id?: string | null
           type?: string

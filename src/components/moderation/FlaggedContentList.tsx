@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,7 +48,7 @@ const FlaggedContentList = () => {
     try {
       let query = supabase
         .from('flagged_content')
-        .select('*, profiles!reporter_id(full_name)');
+        .select('*, reporter:profiles!reporter_id(full_name)');
       
       // Apply filters
       if (typeFilter !== 'all') {
@@ -67,13 +68,14 @@ const FlaggedContentList = () => {
         throw error;
       }
       
-      // Transform data to include reporter name from profiles relation
+      // Transform data with required preview and reporter name
       const transformedData = data?.map(item => ({
         ...item,
-        reporter_name: item.profiles?.full_name || 'Unknown user'
+        content_preview: item.content_preview || 'No preview available',
+        reporter_name: item.reporter?.full_name || 'Unknown user'
       }));
       
-      setFlaggedItems(transformedData || []);
+      setFlaggedItems(transformedData as FlaggedContent[]);
     } catch (error) {
       console.error('Error fetching flagged content:', error);
       toast({
