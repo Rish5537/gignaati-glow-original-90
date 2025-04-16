@@ -16,28 +16,24 @@ const AdminConsole = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   
-  // Redirect to auth if not admin
+  // Redirect to auth if not logged in (removed admin check)
   useEffect(() => {
-    const checkAdminAccess = async () => {
-      if (user) {
-        if (!isAdmin) {
-          toast({
-            title: "Access Denied",
-            description: "You don't have permission to access the admin console.",
-            variant: "destructive"
-          });
-          navigate('/');
-        }
-      } else {
+    const checkAuthentication = async () => {
+      if (!user) {
         // Not logged in
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access the admin console.",
+          variant: "destructive"
+        });
         navigate('/auth');
       }
     };
     
-    checkAdminAccess();
-  }, [user, navigate, isAdmin, toast]);
+    checkAuthentication();
+  }, [user, navigate, toast]);
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

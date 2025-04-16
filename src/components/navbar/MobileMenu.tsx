@@ -1,9 +1,9 @@
 
-import { User, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import NavLinks from './NavLinks';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "react-router-dom";
+import NavLinks from "./NavLinks";
+import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   isAuthenticated: boolean;
@@ -14,70 +14,93 @@ interface MobileMenuProps {
   handleBecomeSeller: () => void;
 }
 
-const MobileMenu = ({ 
-  isAuthenticated, 
-  userName, 
-  userImage, 
-  handleLogout, 
+const MobileMenu = ({
+  isAuthenticated,
+  userName,
+  userImage,
+  handleLogout,
   handleBuyAndTry,
-  handleBecomeSeller
+  handleBecomeSeller,
 }: MobileMenuProps) => {
   const navigate = useNavigate();
   
   return (
-    <div className="md:hidden bg-white absolute top-16 left-0 w-full px-6 py-4 shadow-md z-50">
-      <div className="flex flex-col space-y-4">
-        <NavLinks mobile />
-        <div className="flex flex-col space-y-2 pt-4 border-t">
-          {isAuthenticated ? (
-            <>
-              <div className="flex items-center space-x-2 p-2 border rounded-md">
-                {userImage ? (
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={userImage} alt={userName} />
-                    <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <User size={16} />
-                )}
-                <span>{userName}</span>
-              </div>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate('/user-profile')}
-              >
-                <User size={16} className="mr-2" />
-                See Profile
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-red-500"
-                onClick={handleLogout}
-              >
-                <LogOut size={16} className="mr-2" />
-                Logout
-              </Button>
-            </>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={handleBuyAndTry}
-            >
-              Buy and Try
-            </Button>
-          )}
+    <div className="md:hidden bg-white p-4 border-t flex flex-col space-y-4">
+      <NavLinks />
+
+      {isAuthenticated ? (
+        <>
+          <div className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
+            <Avatar className="h-9 w-9">
+              {userImage && <AvatarImage src={userImage} alt={userName} />}
+              <AvatarFallback className="bg-gray-100 text-primary">
+                {userName.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">{userName}</div>
+              <div className="text-xs text-gray-500">Logged in</div>
+            </div>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={() => navigate('/client-dashboard')}
+          >
+            My Dashboard
+          </Button>
           
           <Button 
-            variant="default" 
-            className="bg-gignaati-coral hover:bg-red-500 text-white w-full"
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={() => navigate('/messaging')}
+          >
+            Messages
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={() => navigate('/admin')}
+          >
+            Admin Console
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
             onClick={handleBecomeSeller}
           >
-            Become a Seller/Creator
+            Become a Seller
           </Button>
-        </div>
-      </div>
+          
+          <Button 
+            variant="destructive" 
+            className="w-full justify-center"
+            onClick={handleLogout}
+          >
+            Log out
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={handleBecomeSeller}
+          >
+            Become a Seller
+          </Button>
+          
+          <Button 
+            className="w-full justify-center bg-black hover:bg-gray-800"
+            onClick={handleBuyAndTry}
+          >
+            Log In
+          </Button>
+        </>
+      )}
     </div>
   );
 };
