@@ -8,10 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FlaggedContent } from '@/types/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, X, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, X } from 'lucide-react';
+
+interface EnhancedFlaggedContent extends FlaggedContent {
+  content_preview: string;
+  reporter_name: string;
+}
 
 interface FlaggedContentDetailProps {
-  content: FlaggedContent;
+  content: EnhancedFlaggedContent;
   onClose: () => void;
   onAction: () => void;
 }

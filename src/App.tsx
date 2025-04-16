@@ -37,7 +37,17 @@ const App = () => {
           />
           <Route
             path="/explore"
-            element={<GigGrid />}
+            element={
+              <GigGrid 
+                searchQuery="" 
+                sortBy="newest" 
+                filters={{
+                  categories: [],
+                  priceRange: { min: 0, max: 1000 },
+                  rating: 0
+                }} 
+              />
+            }
           />
           <Route
             path="/admin/categories-locations"

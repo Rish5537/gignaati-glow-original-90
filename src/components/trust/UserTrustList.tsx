@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,12 +26,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserTrust } from '@/types/supabase';
 
+interface SafeUserTrust extends Omit<UserTrust, 'profile'> {
+  profile?: {
+    full_name?: string | null;
+    avatar_url?: string | null; 
+    username?: string | null;
+  } | null;
+}
+
 const UserTrustList = () => {
-  const [users, setUsers] = useState<UserTrust[]>([]);
+  const [users, setUsers] = useState<SafeUserTrust[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [warnDialogOpen, setWarnDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserTrust | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SafeUserTrust | null>(null);
   const [actionReason, setActionReason] = useState('');
   const [suspensionDays, setSuspensionDays] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -51,10 +58,9 @@ const UserTrustList = () => {
         .from('user_trust_records')
         .select(`
           *,
-          profile:profiles!user_id(*)
+          profile:profiles(*)
         `);
       
-      // Apply filters
       if (statusFilter === 'suspended') {
         query = query.eq('status', 'suspended');
       } else if (statusFilter === 'active') {
@@ -63,7 +69,6 @@ const UserTrustList = () => {
         query = query.gt('warning_count', 0).eq('status', 'active');
       }
       
-      // Apply sorting
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
       
       const { data, error } = await query;
@@ -72,25 +77,28 @@ const UserTrustList = () => {
         throw error;
       }
       
-      // Transform data to match the UserTrust interface
-      const transformedData = data?.map(record => ({
-        id: record.id,
-        user_id: record.user_id,
-        trust_score: record.trust_score || 100,
-        warning_count: record.warning_count || 0,
-        suspension_count: (record.suspension_history as any[])?.length || 0,
-        is_suspended: record.status === 'suspended',
-        suspension_reason: record.status === 'suspended' ? 
-          (record.suspension_history as any[])?.[0]?.reason || null : null,
-        suspension_until: record.status === 'suspended' ? 
-          (record.suspension_history as any[])?.[0]?.until || null : null,
-        last_warning_at: record.last_warning_date,
-        created_at: record.created_at,
-        updated_at: record.updated_at,
-        profile: record.profile
-      }));
+      const transformedData = data?.map(record => {
+        const suspensionHistory = record.suspension_history as any[] || [];
+        
+        return {
+          id: record.id,
+          user_id: record.user_id,
+          trust_score: record.trust_score || 100,
+          warning_count: record.warning_count || 0,
+          suspension_count: suspensionHistory.length || 0,
+          is_suspended: record.status === 'suspended',
+          suspension_reason: record.status === 'suspended' && suspensionHistory.length > 0 ? 
+            suspensionHistory[0]?.reason || null : null,
+          suspension_until: record.status === 'suspended' && suspensionHistory.length > 0 ? 
+            suspensionHistory[0]?.until || null : null,
+          last_warning_at: record.last_warning_date,
+          created_at: record.created_at,
+          updated_at: record.updated_at,
+          profile: record.profile
+        };
+      });
       
-      setUsers(transformedData as UserTrust[]);
+      setUsers(transformedData as SafeUserTrust[]);
     } catch (error) {
       console.error('Error fetching user trust data:', error);
       toast({
@@ -110,7 +118,6 @@ const UserTrustList = () => {
       const suspensionUntil = new Date();
       suspensionUntil.setDate(suspensionUntil.getDate() + suspensionDays);
       
-      // Get current suspension history
       const { data: userData, error: fetchError } = await supabase
         .from('user_trust_records')
         .select('suspension_history')
@@ -119,9 +126,8 @@ const UserTrustList = () => {
       
       if (fetchError) throw fetchError;
       
-      // Update with new suspension data
       const suspensionHistory = [
-        ...(userData?.suspension_history || []),
+        ...(userData?.suspension_history as any[] || []),
         {
           reason: actionReason,
           until: suspensionUntil.toISOString(),
@@ -140,7 +146,6 @@ const UserTrustList = () => {
         
       if (error) throw error;
       
-      // Update local state
       setUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === selectedUser.id 
@@ -178,29 +183,16 @@ const UserTrustList = () => {
     
     try {
       const { error } = await supabase
-        .from('user_trust')
+        .from('user_trust_records')
         .update({
           warning_count: selectedUser.warning_count + 1,
-          last_warning_at: new Date().toISOString(),
+          last_warning_date: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedUser.id);
         
       if (error) throw error;
       
-      // Add record to user warnings table
-      const { error: warningError } = await supabase
-        .from('user_warnings')
-        .insert({
-          user_id: selectedUser.user_id,
-          type: 'warning',
-          reason: actionReason,
-          expires_at: null
-        });
-        
-      if (warningError) throw warningError;
-      
-      // Update local state
       setUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === selectedUser.id 
@@ -231,21 +223,18 @@ const UserTrustList = () => {
     }
   };
 
-  const handleRemoveSuspension = async (user: UserTrust) => {
+  const handleRemoveSuspension = async (user: SafeUserTrust) => {
     try {
       const { error } = await supabase
-        .from('user_trust')
+        .from('user_trust_records')
         .update({
-          is_suspended: false,
-          suspension_reason: null,
-          suspension_until: null,
+          status: 'active',
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
         
       if (error) throw error;
       
-      // Update local state
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === user.id 
@@ -293,7 +282,7 @@ const UserTrustList = () => {
     }
   };
 
-  const getStatusBadge = (user: UserTrust) => {
+  const getStatusBadge = (user: SafeUserTrust) => {
     if (user.is_suspended) {
       return <Badge variant="destructive" className="flex items-center gap-1">
         <XCircle className="h-3 w-3" /> Suspended
@@ -349,7 +338,7 @@ const UserTrustList = () => {
             Warnings
             <ArrowUpDown className="h-3 w-3" />
           </div>
-          <div className="col-span-2 hidden lg:flex items-center gap-1 cursor-pointer" onClick={() => toggleSort('is_suspended')}>
+          <div className="col-span-2 hidden lg:flex items-center gap-1 cursor-pointer" onClick={() => toggleSort('status')}>
             Status
             <ArrowUpDown className="h-3 w-3" />
           </div>

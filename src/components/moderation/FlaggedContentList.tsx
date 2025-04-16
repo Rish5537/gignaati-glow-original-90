@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,8 +29,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FlaggedContent } from '@/types/supabase';
 
+interface EnhancedFlaggedContent extends FlaggedContent {
+  content_preview: string;
+  reporter_name: string;
+}
+
 const FlaggedContentList = () => {
-  const [flaggedItems, setFlaggedItems] = useState<FlaggedContent[]>([]);
+  const [flaggedItems, setFlaggedItems] = useState<EnhancedFlaggedContent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -48,9 +52,11 @@ const FlaggedContentList = () => {
     try {
       let query = supabase
         .from('flagged_content')
-        .select('*, reporter:profiles!reporter_id(full_name)');
+        .select(`
+          *,
+          reporter:profiles!reporter_id(full_name)
+        `);
       
-      // Apply filters
       if (typeFilter !== 'all') {
         query = query.eq('content_type', typeFilter);
       }
@@ -59,7 +65,6 @@ const FlaggedContentList = () => {
         query = query.eq('status', statusFilter);
       }
       
-      // Apply sorting
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
       
       const { data, error } = await query;
@@ -68,14 +73,16 @@ const FlaggedContentList = () => {
         throw error;
       }
       
-      // Transform data with required preview and reporter name
-      const transformedData = data?.map(item => ({
-        ...item,
-        content_preview: item.content_preview || 'No preview available',
-        reporter_name: item.reporter?.full_name || 'Unknown user'
-      }));
+      const transformedData = data?.map(item => {
+        const reporterData = item.reporter as any;
+        return {
+          ...item,
+          content_preview: 'Preview not available',
+          reporter_name: reporterData?.full_name || 'Unknown user'
+        };
+      });
       
-      setFlaggedItems(transformedData as FlaggedContent[]);
+      setFlaggedItems(transformedData as EnhancedFlaggedContent[]);
     } catch (error) {
       console.error('Error fetching flagged content:', error);
       toast({
@@ -97,7 +104,6 @@ const FlaggedContentList = () => {
         
       if (error) throw error;
       
-      // Update local state
       setFlaggedItems(prevItems => 
         prevItems.map(item => 
           item.id === id ? { ...item, status: 'approved' } : item
@@ -127,7 +133,6 @@ const FlaggedContentList = () => {
         
       if (error) throw error;
       
-      // Update local state
       setFlaggedItems(prevItems => 
         prevItems.map(item => 
           item.id === id ? { ...item, status: 'rejected' } : item
@@ -263,7 +268,7 @@ const FlaggedContentList = () => {
                   <span className="text-sm font-medium truncate">ID: {item.content_id.substring(0, 8)}</span>
                 </div>
                 <div className="text-sm text-muted-foreground truncate">
-                  {item.content_preview || 'No preview available'}
+                  {item.content_preview}
                 </div>
               </div>
               <div className="col-span-3 hidden md:block">
