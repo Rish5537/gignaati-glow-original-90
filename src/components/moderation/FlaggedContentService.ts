@@ -36,8 +36,9 @@ export async function fetchFlaggedContent(
   const transformedData: EnhancedFlaggedContent[] = data?.map(item => {
     const dbItem = item as unknown as FlaggedContent;
     
-    // Handle the reporter data safely
-    const reporterData = item.reporter as { full_name: string | null } | null;
+    // Safely handle the reporter data with proper type checks
+    // First cast to unknown, then to the expected type to avoid TypeScript errors
+    const reporterData = item.reporter as unknown as { full_name: string | null } | null;
     
     // Ensure content_type is one of the allowed values
     let contentType: 'gig' | 'message' | 'profile' | 'review' = 'gig';
