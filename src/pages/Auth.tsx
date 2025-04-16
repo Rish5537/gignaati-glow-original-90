@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -23,7 +24,7 @@ const Auth = () => {
   const [authStep, setAuthStep] = useState<AuthStep>(initialTab);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const { userRoles } = useAuth();
+  const { userRoles, getRedirectPathForUser } = useAuth();
   
   // Get return URL from query params or localStorage
   const returnUrl = searchParams.get("returnUrl") || localStorage.getItem("authRedirectUrl") || "/";
@@ -42,24 +43,8 @@ const Auth = () => {
   }, [userRoles]);
 
   const handleRoleBasedRedirection = () => {
-    // First check if there's a specific return URL (like when admin adds a user)
-    if (returnUrl && returnUrl !== "/") {
-      localStorage.removeItem("authRedirectUrl");
-      navigate(returnUrl);
-      return;
-    }
-
-    // Otherwise redirect based on user role
-    if (userRoles.includes("admin")) {
-      navigate("/admin");
-    } else if (userRoles.includes("creator")) {
-      navigate("/freelancer-dashboard");
-    } else if (userRoles.includes("ops_team")) {
-      navigate("/ops");
-    } else {
-      // Default for buyers or users with no specific role
-      navigate("/client-dashboard");
-    }
+    const redirectPath = getRedirectPathForUser();
+    navigate(redirectPath);
   };
 
   const handleLoginSuccess = (data: { email: string, success: boolean, userId?: string }) => {
@@ -91,10 +76,8 @@ const Auth = () => {
             navigate(returnUrl);
           }, 1000);
         } else {
-          // Clear the stored return URL
-          localStorage.removeItem("authRedirectUrl");
           // Redirect to the return URL
-          navigate(returnUrl);
+          navigate(getRedirectPathForUser());
         }
       } else {
         // Check roles for redirection or proceed to MFA

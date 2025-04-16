@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -17,6 +16,7 @@ interface AuthContextValue {
   isModerator: boolean;
   hasRole: (role: UserRole) => boolean;
   signOut: () => Promise<void>;
+  getRedirectPathForUser: () => string;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -76,6 +76,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
   };
+  
+  const getRedirectPathForUser = () => {
+    // Check for specific return URL first
+    const storedReturnUrl = localStorage.getItem("authRedirectUrl");
+    if (storedReturnUrl) {
+      localStorage.removeItem("authRedirectUrl");
+      return storedReturnUrl;
+    }
+    
+    // Otherwise redirect based on user role
+    if (hasRole('admin')) {
+      return "/admin";
+    } else if (hasRole('creator')) {
+      return "/freelancer-dashboard";
+    } else if (hasRole('ops_team')) {
+      return "/ops";
+    } else {
+      // Default for buyers or users with no specific role
+      return "/client-dashboard";
+    }
+  };
 
   const value: AuthContextValue = {
     user,
@@ -88,7 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isBuyer: hasRole('buyer'),
     isModerator: hasRole('moderator'),
     hasRole,
-    signOut
+    signOut,
+    getRedirectPathForUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
