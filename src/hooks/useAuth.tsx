@@ -3,7 +3,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { UserRole } from "@/services/types/rbac";
-import { getCurrentUserRoles } from "@/services/RBACService";
+import { getUserRoles } from "@/services/UserRoleService";
 
 interface AuthContextValue {
   user: User | null;
@@ -17,6 +17,10 @@ interface AuthContextValue {
   isModerator: boolean;
   hasRole: (role: UserRole) => boolean;
   signOut: () => Promise<void>;
+  canAccessAdminPanel: boolean;
+  canAccessOpsPanel: boolean;
+  canAccessClientDashboard: boolean;
+  canAccessBrowseGigs: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -61,7 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
-      const roles = await getCurrentUserRoles();
+      // Use UserRoleService instead of direct query
+      const roles = await getUserRoles(userId);
       setUserRoles(roles);
     } catch (error) {
       console.error("Error fetching user roles:", error);
@@ -77,18 +82,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  // Compute access permissions
+  const isAdmin = hasRole('admin');
+  const isModerator = hasRole('moderator');
+  const isOpsTeam = hasRole('ops_team');
+  const isCreator = hasRole('creator');
+  const isBuyer = hasRole('buyer');
+  
+  // Define access permissions
+  const canAccessAdminPanel = isAdmin || isModerator;
+  const canAccessOpsPanel = isOpsTeam || isAdmin;
+  const canAccessClientDashboard = true; // everyone can access this
+  const canAccessBrowseGigs = true; // everyone can access this
+
   const value: AuthContextValue = {
     user,
     session,
     userRoles,
     isLoading,
-    isAdmin: hasRole('admin'),
-    isOpsTeam: hasRole('ops_team'),
-    isCreator: hasRole('creator'),
-    isBuyer: hasRole('buyer'),
-    isModerator: hasRole('moderator'),
+    isAdmin,
+    isOpsTeam,
+    isCreator,
+    isBuyer,
+    isModerator,
     hasRole,
-    signOut
+    signOut,
+    canAccessAdminPanel,
+    canAccessOpsPanel,
+    canAccessClientDashboard,
+    canAccessBrowseGigs
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

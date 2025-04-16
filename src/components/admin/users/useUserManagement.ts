@@ -19,7 +19,7 @@ export const useUserManagement = () => {
     if (userSearchTerm) {
       const filtered = users.filter(user => 
         user.full_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
-        user.username?.toLowerCase().includes(userSearchTerm.toLowerCase())
+        user.email?.toLowerCase().includes(userSearchTerm.toLowerCase())
       );
       setFilteredUsers(filtered);
     } else {
@@ -31,50 +31,73 @@ export const useUserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch profiles
+      // First get users from auth.users table
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        throw authError;
+      }
+
+      // Then get profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, username, avatar_url, created_at');
       
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.warn("Error fetching profiles:", profilesError);
+      }
       
+      // Map profiles to users
+      const profilesMap = new Map();
+      if (profiles) {
+        profiles.forEach((profile: any) => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
+
       // Handle user roles with error protection
-      let userRolesData = [];
+      let userRolesData: any[] = [];
       try {
+        // Fix #1: Instead of using RPC, query user_roles table directly
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('user_id, role');
         
-        if (!rolesError) {
-          userRolesData = userRoles || [];
+        if (!rolesError && userRoles) {
+          userRolesData = userRoles;
         } else {
           console.warn("Could not fetch user roles:", rolesError);
         }
       } catch (rolesFetchError) {
         console.error("Error in user roles fetch:", rolesFetchError);
-        // Continue with empty roles
       }
       
-      // Combine data
-      const usersWithRoles = profiles.map((profile: any) => {
+      // Combine all user data
+      const usersWithDetails = authUsers.users.map((user: any) => {
+        const profile = profilesMap.get(user.id) || {};
         const roles = userRolesData
-          .filter((role: any) => role.user_id === profile.id)
+          .filter((role: any) => role.user_id === user.id)
           .map((role: any) => role.role);
         
         return {
-          ...profile,
+          id: user.id,
+          email: user.email,
+          full_name: profile.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unnamed User',
+          username: profile.username,
+          avatar_url: profile.avatar_url,
+          created_at: user.created_at,
           roles
         };
       });
       
-      setUsers(usersWithRoles);
-      setFilteredUsers(usersWithRoles);
-      return usersWithRoles;
+      setUsers(usersWithDetails);
+      setFilteredUsers(usersWithDetails);
+      return usersWithDetails;
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to load users data. We'll show what we can.",
+        description: "Failed to load users data. Please refresh and try again.",
         variant: "destructive"
       });
       return [];
@@ -95,25 +118,14 @@ export const useUserManagement = () => {
     if (!selectedUser || !selectedRole) return;
     
     try {
-      // First delete existing roles for this user
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', selectedUser.id);
+      // Use the UserRoleService instead of direct query
+      const success = await setRole(selectedUser.id, selectedRole);
       
-      // Then add the new role, ensuring it's a valid UserRole
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: selectedUser.id,
-          role: selectedRole as UserRole
-        });
-      
-      if (error) throw error;
+      if (!success) throw new Error("Failed to assign role");
       
       toast({
         title: "Role assigned",
-        description: `${selectedUser.full_name || 'User'} has been assigned the ${selectedRole} role.`
+        description: `${selectedUser.full_name || selectedUser.email || 'User'} has been assigned the ${selectedRole} role.`
       });
       
       // Refresh user data
@@ -123,7 +135,33 @@ export const useUserManagement = () => {
       console.error("Error assigning role:", error);
       toast({
         title: "Error",
-        description: "Failed to assign role",
+        description: "Failed to assign role. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // New function for quick role change
+  const handleQuickRoleChange = async (userId: string, role: UserRole) => {
+    try {
+      // Use the UserRoleService instead of direct query
+      const success = await setRole(userId, role);
+      
+      if (!success) throw new Error("Failed to update role");
+      
+      const user = users.find(user => user.id === userId);
+      toast({
+        title: "Role updated",
+        description: `${user?.full_name || user?.email || 'User'} has been assigned the ${role} role.`
+      });
+      
+      // Refresh user data
+      fetchUsers();
+    } catch (error) {
+      console.error("Error changing role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update role. Please try again.",
         variant: "destructive"
       });
     }
@@ -153,7 +191,7 @@ export const useUserManagement = () => {
       console.error("Error deleting user:", error);
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: "Failed to delete user. Please try again.",
         variant: "destructive"
       });
     }
@@ -173,6 +211,10 @@ export const useUserManagement = () => {
     fetchUsers,
     handleOpenRoleDialog,
     handleAssignRole,
-    handleDeleteUser
+    handleDeleteUser,
+    handleQuickRoleChange
   };
 };
+
+// Import the setRole function from UserRoleService
+import { setRole } from "@/services/UserRoleService";
