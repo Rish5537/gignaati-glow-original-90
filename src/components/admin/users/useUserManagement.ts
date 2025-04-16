@@ -86,20 +86,22 @@ export const useUserManagement = () => {
     
     try {
       // First delete existing roles for this user
-      await supabase
+      const { error: deleteError } = await supabase
         .from('user_roles')
         .delete()
         .eq('user_id', selectedUser.id);
       
+      if (deleteError) throw deleteError;
+      
       // Then add the new role, ensuring it's a valid UserRole
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('user_roles')
         .insert({
           user_id: selectedUser.id,
           role: selectedRole as UserRole
         });
       
-      if (error) throw error;
+      if (insertError) throw insertError;
       
       toast({
         title: "Role assigned",
@@ -109,11 +111,11 @@ export const useUserManagement = () => {
       // Refresh user data
       fetchUsers();
       setShowRoleDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error assigning role:", error);
       toast({
         title: "Error",
-        description: "Failed to assign role",
+        description: error.message || "Failed to assign role",
         variant: "destructive"
       });
     }
@@ -139,11 +141,11 @@ export const useUserManagement = () => {
       
       // Refresh users
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: error.message || "Failed to delete user",
         variant: "destructive"
       });
     }

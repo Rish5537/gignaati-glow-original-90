@@ -54,9 +54,13 @@ const GigsModeration: React.FC = () => {
       if (error) throw error;
       
       // Get gig requirements
-      const { data: requirementsData } = await supabase
+      const { data: requirementsData, error: reqError } = await supabase
         .from('gig_requirements')
         .select('gig_id, requirements');
+      
+      if (reqError) {
+        console.error("Error fetching requirements:", reqError);
+      }
       
       // Map requirements to gigs
       const gigsWithRequirements = data.map((gig: any) => {
@@ -90,39 +94,54 @@ const GigsModeration: React.FC = () => {
   const handleApproveGig = async (gig: any) => {
     try {
       // Check if user exists
-      const { data: user } = await supabase
+      const { data: user, error: userError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', gig.freelancer_id)
         .single();
       
-      if (!user) {
+      if (userError) {
+        console.error("Error checking user:", userError);
         throw new Error("Creator not found");
       }
       
       // Assign creator role to the user if not already assigned
-      const { data: hasCreatorRole } = await supabase.rpc('has_role', { 
+      const { data: hasCreatorRole, error: roleError } = await supabase.rpc('has_role', { 
         user_id: gig.freelancer_id,
         required_role: 'creator'
       });
       
+      if (roleError) {
+        console.error("Error checking role:", roleError);
+      }
+      
       if (!hasCreatorRole) {
-        await supabase
+        const { error: assignError } = await supabase
           .from('user_roles')
           .insert({
             user_id: gig.freelancer_id,
             role: 'creator'
           });
+          
+        if (assignError) {
+          console.error("Error assigning role:", assignError);
+        }
       }
       
       // Send notification to user
-      await supabase.from('notifications').insert({
-        user_id: gig.freelancer_id,
-        title: 'Gig Approved',
-        message: `Your gig "${gig.title}" has been approved and is now live.`,
-        related_entity_type: 'gig',
-        related_entity_id: gig.id
-      });
+      const { error: notifyError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: gig.freelancer_id,
+          title: 'Gig Approved',
+          message: `Your gig "${gig.title}" has been approved and is now live.`,
+          related_entity_type: 'gig',
+          related_entity_id: gig.id
+        });
+      
+      if (notifyError) {
+        console.error("Error sending notification:", notifyError);
+      }
       
       toast({
         title: "Gig approved",
@@ -131,11 +150,11 @@ const GigsModeration: React.FC = () => {
       
       // Refresh data
       fetchGigs();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approving gig:", error);
       toast({
         title: "Error",
-        description: "Failed to approve gig",
+        description: error.message || "Failed to approve gig",
         variant: "destructive"
       });
     }
@@ -145,13 +164,19 @@ const GigsModeration: React.FC = () => {
   const handleRejectGig = async (gig: any) => {
     try {
       // Send notification to user
-      await supabase.from('notifications').insert({
-        user_id: gig.freelancer_id,
-        title: 'Gig Rejected',
-        message: `Your gig "${gig.title}" has been rejected. Please review and resubmit.`,
-        related_entity_type: 'gig',
-        related_entity_id: gig.id
-      });
+      const { error: notifyError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: gig.freelancer_id,
+          title: 'Gig Rejected',
+          message: `Your gig "${gig.title}" has been rejected. Please review and resubmit.`,
+          related_entity_type: 'gig',
+          related_entity_id: gig.id
+        });
+      
+      if (notifyError) {
+        console.error("Error sending notification:", notifyError);
+      }
       
       toast({
         title: "Gig rejected",
@@ -160,11 +185,11 @@ const GigsModeration: React.FC = () => {
       
       // Refresh data
       fetchGigs();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error rejecting gig:", error);
       toast({
         title: "Error",
-        description: "Failed to reject gig",
+        description: error.message || "Failed to reject gig",
         variant: "destructive"
       });
     }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -11,6 +10,21 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+
+const setupDatabase = async () => {
+  try {
+    const { error: ordersTableError } = await supabase.rpc('create_orders_table_if_not_exists');
+    if (ordersTableError) console.error("Error creating orders table:", ordersTableError);
+    
+    const { error: packagesTableError } = await supabase.rpc('create_packages_table_if_not_exists');
+    if (packagesTableError) console.error("Error creating packages table:", packagesTableError);
+    
+    const { error: transactionsTableError } = await supabase.rpc('create_transactions_table_if_not_exists');
+    if (transactionsTableError) console.error("Error creating transactions table:", transactionsTableError);
+  } catch (error) {
+    console.error("Error setting up database:", error);
+  }
+};
 
 const Checkout = () => {
   const { id } = useParams();
@@ -26,20 +40,19 @@ const Checkout = () => {
   const [packageData, setPackageData] = useState<any>(null);
   
   useEffect(() => {
-    // If user is not logged in, redirect to login page
     if (!user && !loading) {
       localStorage.setItem("authRedirectUrl", window.location.pathname + window.location.search);
       navigate("/auth");
       return;
     }
     
-    // Fetch gig and package data
+    setupDatabase();
+    
     const fetchGigData = async () => {
       if (!id) return;
       setLoading(true);
       
       try {
-        // Fetch gig data
         const { data: gig, error: gigError } = await supabase
           .from('gigs')
           .select(`
@@ -57,7 +70,6 @@ const Checkout = () => {
         
         if (gigError) throw gigError;
         
-        // Fetch package data
         if (packageType) {
           const { data: packageInfo, error: packageError } = await supabase
             .from('gig_packages')
@@ -95,7 +107,12 @@ const Checkout = () => {
     setLoading(true);
     
     try {
-      // Create a new order
+      const { data: tableExists } = await supabase.rpc('table_exists', { table_name: 'orders' });
+      
+      if (!tableExists) {
+        await setupDatabase();
+      }
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -110,27 +127,34 @@ const Checkout = () => {
         .select()
         .single();
       
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error("Order error:", orderError);
+        throw orderError;
+      }
       
-      // Create a new transaction record
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          order_id: order.id,
-          user_id: user.id,
-          amount: packageData ? packageData.price : gigData.price,
-          payment_status: 'pending',
-          payment_method: 'credit_card'
-        });
+      const { data: transTableExists } = await supabase.rpc('table_exists', { table_name: 'transactions' });
       
-      if (transactionError) throw transactionError;
+      if (transTableExists) {
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            order_id: order.id,
+            user_id: user.id,
+            amount: packageData ? packageData.price : gigData.price,
+            payment_status: 'pending',
+            payment_method: 'credit_card'
+          });
+        
+        if (transactionError) {
+          console.error("Transaction error:", transactionError);
+        }
+      }
       
       toast({
         title: "Order placed successfully!",
         description: "Your order has been placed. You will be redirected to payment.",
       });
       
-      // Redirect to a success page or payment page
       setTimeout(() => navigate(`/client-dashboard`), 2000);
       
     } catch (error: any) {

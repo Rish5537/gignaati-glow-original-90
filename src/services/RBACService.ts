@@ -1,96 +1,154 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserRole, UserRoleAssignment } from "./types/rbac";
+import { UserRole } from "./types/rbac";
 
-// Get all roles for the current user
+/**
+ * Get the current user's roles
+ */
 export const getCurrentUserRoles = async (): Promise<UserRole[]> => {
-  const session = await supabase.auth.getSession();
-  const userId = session.data.session?.user.id;
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (!userId) {
+  if (!user) {
     return [];
   }
   
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('Error fetching user roles:', error);
+  try {
+    const { data: roles, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+    
+    if (error) {
+      console.error("Error fetching user roles:", error);
+      return [];
+    }
+    
+    return (roles || []).map(r => r.role as UserRole);
+  } catch (error) {
+    console.error("Error in getCurrentUserRoles:", error);
     return [];
   }
-
-  return data.map((item) => item.role);
 };
 
-// Check if current user has a specific role
-export const hasRole = async (role: UserRole): Promise<boolean> => {
-  const session = await supabase.auth.getSession();
-  const userId = session.data.session?.user.id;
+/**
+ * Check if the current user has a specific role
+ */
+export const checkCurrentUserRole = async (requiredRole: UserRole): Promise<boolean> => {
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (!userId) {
+  if (!user) {
     return false;
   }
-
-  const { data, error } = await supabase.rpc('has_role', { 
-    user_id: userId,
-    required_role: role
-  });
-
-  if (error) {
-    console.error('Error checking if user has role:', error);
+  
+  try {
+    const { data, error } = await supabase.rpc('has_role', { 
+      user_id: user.id,
+      required_role: requiredRole
+    });
+    
+    if (error) {
+      console.error("Error checking user role:", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error in checkCurrentUserRole:", error);
     return false;
   }
-
-  return data || false;
 };
 
-// Fetch all user roles (admin only)
-export const getAllUserRoles = async (): Promise<UserRoleAssignment[]> => {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select(`
-      id,
-      user_id,
-      role,
-      created_at,
-      updated_at
-    `);
-
-  if (error) {
-    console.error('Error fetching all user roles:', error);
-    return [];
+/**
+ * Check if a specific user has a specific role
+ */
+export const checkUserRole = async (userId: string, requiredRole: UserRole): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('has_role', { 
+      user_id: userId,
+      required_role: requiredRole
+    });
+    
+    if (error) {
+      console.error("Error checking user role:", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error in checkUserRole:", error);
+    return false;
   }
-
-  return data || [];
 };
 
-// Assign a role to a user (admin only)
+/**
+ * Assign a role to a user
+ */
 export const assignRole = async (userId: string, role: UserRole): Promise<boolean> => {
-  const { error } = await supabase
-    .from('user_roles')
-    .insert({ user_id: userId, role });
-
-  if (error) {
-    console.error('Error assigning role:', error);
+  try {
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        role: role
+      });
+    
+    if (error) {
+      console.error("Error assigning role:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in assignRole:", error);
     return false;
   }
-
-  return true;
 };
 
-// Remove a role from a user (admin only)
+/**
+ * Remove a role from a user
+ */
 export const removeRole = async (roleId: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('user_roles')
-    .delete()
-    .eq('id', roleId);
-
-  if (error) {
-    console.error('Error removing role:', error);
+  try {
+    const { error } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('id', roleId);
+    
+    if (error) {
+      console.error("Error removing role:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in removeRole:", error);
     return false;
   }
+};
 
-  return true;
+/**
+ * Get all user roles
+ */
+export const getAllUserRoles = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select(`
+        id,
+        user_id,
+        role,
+        created_at,
+        profiles!user_roles_user_id_fkey(full_name, username)
+      `);
+    
+    if (error) {
+      console.error("Error fetching all user roles:", error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in getAllUserRoles:", error);
+    return [];
+  }
 };

@@ -9,16 +9,197 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      gig_requirements: {
+        Row: {
+          created_at: string
+          gig_id: string
+          id: string
+          requirements: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gig_id: string
+          id?: string
+          requirements?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gig_id?: string
+          id?: string
+          requirements?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_requirements_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gigs: {
+        Row: {
+          business_functions: string[] | null
+          categories: string[] | null
+          created_at: string
+          experience_level: string | null
+          freelancer_id: string
+          functions: string[] | null
+          hosting_providers: string[] | null
+          id: string
+          image_url: string | null
+          industries: string[] | null
+          integrations: string[] | null
+          llm_models: string[] | null
+          price: number
+          professions: string[] | null
+          rating: number | null
+          reviews_count: number | null
+          title: string
+          types: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          business_functions?: string[] | null
+          categories?: string[] | null
+          created_at?: string
+          experience_level?: string | null
+          freelancer_id: string
+          functions?: string[] | null
+          hosting_providers?: string[] | null
+          id?: string
+          image_url?: string | null
+          industries?: string[] | null
+          integrations?: string[] | null
+          llm_models?: string[] | null
+          price: number
+          professions?: string[] | null
+          rating?: number | null
+          reviews_count?: number | null
+          title: string
+          types?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          business_functions?: string[] | null
+          categories?: string[] | null
+          created_at?: string
+          experience_level?: string | null
+          freelancer_id?: string
+          functions?: string[] | null
+          hosting_providers?: string[] | null
+          id?: string
+          image_url?: string | null
+          industries?: string[] | null
+          integrations?: string[] | null
+          llm_models?: string[] | null
+          price?: number
+          professions?: string[] | null
+          rating?: number | null
+          reviews_count?: number | null
+          title?: string
+          types?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          user_id: string
+          required_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "buyer" | "creator" | "ops_team" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +314,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "buyer", "creator", "ops_team", "moderator"],
+    },
   },
 } as const
