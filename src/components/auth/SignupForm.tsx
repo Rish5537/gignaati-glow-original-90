@@ -51,7 +51,10 @@ const SignupForm = ({ onToggleForm }: SignupFormProps) => {
       
       // Check if this was initiated from admin "Add User"
       const authRedirectUrl = localStorage.getItem("authRedirectUrl");
+      console.log("Auth redirect URL:", authRedirectUrl);
+      
       if (authRedirectUrl && authRedirectUrl.includes("/admin")) {
+        console.log("Admin add user flow detected");
         // Add the new user ID as a URL parameter so admin page can open role dialog
         navigate(`/admin?newUserId=${data.user?.id}`);
         localStorage.removeItem("authRedirectUrl");

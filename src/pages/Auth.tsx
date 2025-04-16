@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -44,6 +45,7 @@ const Auth = () => {
   const handleRoleBasedRedirection = () => {
     // First check if there's a specific return URL (like when admin adds a user)
     if (returnUrl && returnUrl !== "/") {
+      console.log("Redirecting to return URL:", returnUrl);
       localStorage.removeItem("authRedirectUrl");
       navigate(returnUrl);
       return;
@@ -65,7 +67,7 @@ const Auth = () => {
   const handleLoginSuccess = (data: { email: string, success: boolean, userId?: string }) => {
     if (data.success) {
       setEmail(data.email);
-      setUserId(data.userId || data.email); // Use actual userId if available
+      setUserId(data.userId || data.email);
       localStorage.setItem("isAuthenticated", "true");
       
       // Set default user name if not already set
@@ -75,33 +77,35 @@ const Auth = () => {
         localStorage.setItem("userEmail", data.email);
       }
       
-      // For demo purposes, we'll skip MFA when a return URL is specified
-      if (returnUrl && returnUrl !== "/") {
+      // Always check if this is an admin-initiated "Add User" flow
+      const adminAddUserFlow = returnUrl && returnUrl.includes("/admin");
+      
+      // For admin add user flow, skip MFA and redirect immediately
+      if (adminAddUserFlow) {
+        toast({
+          title: "User created successfully!",
+          description: "Redirecting back to admin console..."
+        });
+        
+        // Short delay to ensure data is saved
+        setTimeout(() => {
+          localStorage.removeItem("authRedirectUrl");
+          // Include the new user ID in the URL for the admin console to use
+          navigate(`/admin?newUserId=${data.userId}`);
+        }, 1000);
+      } else if (returnUrl && returnUrl !== "/") {
+        // For other return URLs
         toast({
           title: "Login successful!",
           description: "Redirecting you to complete your action..."
         });
-        
-        // If coming from admin user addition, wait briefly to make sure user data is saved
-        if (returnUrl.includes("/admin")) {
-          setTimeout(() => {
-            // Clear the stored return URL
-            localStorage.removeItem("authRedirectUrl");
-            // Redirect to the return URL
-            navigate(returnUrl);
-          }, 1000);
-        } else {
-          // Clear the stored return URL
-          localStorage.removeItem("authRedirectUrl");
-          // Redirect to the return URL
-          navigate(returnUrl);
-        }
+        localStorage.removeItem("authRedirectUrl");
+        navigate(returnUrl);
       } else {
-        // Check roles for redirection or proceed to MFA
+        // Normal flow - check roles or proceed to MFA
         if (userRoles.length > 0) {
           handleRoleBasedRedirection();
         } else {
-          // Normal flow - proceed to MFA
           setAuthStep(AuthStep.MFA);
         }
       }

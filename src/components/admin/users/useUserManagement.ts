@@ -38,16 +38,26 @@ export const useUserManagement = () => {
       
       if (profilesError) throw profilesError;
       
-      // Fetch user roles
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-      
-      if (rolesError) throw rolesError;
+      // Handle user roles with error protection
+      let userRolesData = [];
+      try {
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+        
+        if (!rolesError) {
+          userRolesData = userRoles || [];
+        } else {
+          console.warn("Could not fetch user roles:", rolesError);
+        }
+      } catch (rolesFetchError) {
+        console.error("Error in user roles fetch:", rolesFetchError);
+        // Continue with empty roles
+      }
       
       // Combine data
       const usersWithRoles = profiles.map((profile: any) => {
-        const roles = userRoles
+        const roles = userRolesData
           .filter((role: any) => role.user_id === profile.id)
           .map((role: any) => role.role);
         
@@ -64,7 +74,7 @@ export const useUserManagement = () => {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to load users data",
+        description: "Failed to load users data. We'll show what we can.",
         variant: "destructive"
       });
       return [];

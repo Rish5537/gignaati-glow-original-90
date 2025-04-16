@@ -1,13 +1,14 @@
 
 import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import UserRoleDialog from "./UserRoleDialog";
 import UserTable from "./UserTable";
 import UserSearchBar from "./UserSearchBar";
 import UserTablePagination from "./UserTablePagination";
 import { useUserManagement } from "./useUserManagement";
+import { toast } from "@/hooks/use-toast";
 
 const UserManagement: React.FC = () => {
   const {
@@ -29,6 +30,7 @@ const UserManagement: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, isAdmin } = useAuth();
 
   // Load initial data
@@ -40,12 +42,21 @@ const UserManagement: React.FC = () => {
   
   // Check for newly added user via URL search params
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const newUserId = queryParams.get('newUserId');
+    const newUserId = searchParams.get('newUserId');
     
     if (newUserId) {
-      // Clear the URL parameter
-      navigate('/admin', { replace: true });
+      console.log("New user detected:", newUserId);
+      
+      // Clear the URL parameter without navigating
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('newUserId');
+      navigate({ search: newSearchParams.toString() }, { replace: true });
+      
+      // Show success toast
+      toast({
+        title: "User added successfully",
+        description: "Now you can assign a role to the new user."
+      });
       
       // Refresh users list to include the new user
       fetchUsers().then(() => {
@@ -53,17 +64,40 @@ const UserManagement: React.FC = () => {
         const newUser = users.find(u => u.id === newUserId);
         if (newUser) {
           handleOpenRoleDialog(newUser);
+        } else {
+          console.log("Fetching users again to find the new user");
+          // Retry once more after a delay
+          setTimeout(() => {
+            fetchUsers().then(() => {
+              const newUserRetry = users.find(u => u.id === newUserId);
+              if (newUserRetry) {
+                handleOpenRoleDialog(newUserRetry);
+              } else {
+                console.warn("Couldn't find the newly created user");
+                toast({
+                  title: "User added",
+                  description: "Please refresh the page to see the new user and assign roles manually."
+                });
+              }
+            });
+          }, 1000);
         }
       });
     }
-  }, [location.search]);
+  }, [searchParams, navigate, users, handleOpenRoleDialog, fetchUsers]);
 
   // Handle add new user
   const handleAddUser = () => {
+    console.log("Add User button clicked");
     // Save redirect URL to return after auth
     localStorage.setItem("authRedirectUrl", "/admin");
-    // Redirect to auth page
-    navigate('/auth');
+    // Redirect to auth page with signup tab
+    navigate('/auth?tab=signup');
+    
+    toast({
+      title: "Adding a new user",
+      description: "Please complete the signup form to add a new user"
+    });
   };
 
   return (
