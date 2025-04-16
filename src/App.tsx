@@ -43,8 +43,16 @@ const App = () => {
                 sortBy="newest" 
                 filters={{
                   categories: [],
-                  priceRange: { min: 0, max: 1000 },
-                  rating: 0
+                  priceRange: [0, 1000],
+                  ratings: [],
+                  functions: [],
+                  types: [],
+                  llmModels: [],
+                  hostingProviders: [],
+                  industries: [],
+                  integrations: [],
+                  businessFunctions: [],
+                  professions: []
                 }} 
               />
             }
