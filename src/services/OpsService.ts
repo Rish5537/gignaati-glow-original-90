@@ -9,3 +9,5 @@ export * from './AuditService';
 export * from './task/TaskQueryService';
 export * from './task/TaskMutationService';
 export * from './task/TaskEscalationService';
+export * from './RBACService';
+
