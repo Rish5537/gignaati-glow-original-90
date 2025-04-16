@@ -39,6 +39,53 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_packages: {
+        Row: {
+          created_at: string
+          delivery_time: string
+          description: string
+          gig_id: string | null
+          id: string
+          package_type: string
+          price: number
+          revisions: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_time: string
+          description: string
+          gig_id?: string | null
+          id?: string
+          package_type: string
+          price: number
+          revisions: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_time?: string
+          description?: string
+          gig_id?: string | null
+          id?: string
+          package_type?: string
+          price?: number
+          revisions?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_packages_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gigs: {
         Row: {
           business_functions: string[] | null
@@ -363,6 +410,56 @@ export type Database = {
             columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          id: string
+          order_id: string | null
+          payment_method: string | null
+          payment_status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          payment_status: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
