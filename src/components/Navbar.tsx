@@ -12,7 +12,7 @@ import MobileMenu from './navbar/MobileMenu';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, userRoles, canAccessAdminPanel, canAccessOpsPanel } = useAuth();
   
   // Derived state from auth context
   const isAuthenticated = !!user;
@@ -71,6 +71,9 @@ const Navbar = () => {
           isAuthenticated={isAuthenticated}
           userName={userName}
           userImage={userImage}
+          userRoles={userRoles}
+          canAccessAdminPanel={canAccessAdminPanel}
+          canAccessOpsPanel={canAccessOpsPanel}
           handleLogout={handleLogout}
           handleBuyAndTry={handleBuyAndTry}
           handleBecomeSeller={handleBecomeSeller}
@@ -88,6 +91,9 @@ const Navbar = () => {
           isAuthenticated={isAuthenticated}
           userName={userName}
           userImage={userImage}
+          userRoles={userRoles}
+          canAccessAdminPanel={canAccessAdminPanel}
+          canAccessOpsPanel={canAccessOpsPanel}
           handleLogout={handleLogout}
           handleBuyAndTry={handleBuyAndTry}
           handleBecomeSeller={handleBecomeSeller}

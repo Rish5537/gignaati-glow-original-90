@@ -1,13 +1,16 @@
 
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import NavLinks from './NavLinks';
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserRole } from "@/services/types/rbac";
 
 interface MobileMenuProps {
   isAuthenticated: boolean;
   userName: string;
-  userImage: string;
+  userImage?: string;
+  userRoles?: UserRole[];
+  canAccessAdminPanel?: boolean;
+  canAccessOpsPanel?: boolean;
   handleLogout: () => void;
   handleBuyAndTry: () => void;
   handleBecomeSeller: () => void;
@@ -17,71 +20,78 @@ const MobileMenu = ({
   isAuthenticated,
   userName,
   userImage,
+  userRoles = [],
+  canAccessAdminPanel = false,
+  canAccessOpsPanel = false,
   handleLogout,
   handleBuyAndTry,
-  handleBecomeSeller
+  handleBecomeSeller,
 }: MobileMenuProps) => {
+  const navigate = useNavigate();
+
   return (
-    <div className="md:hidden py-4 px-4 space-y-4 bg-white border-t">
-      <NavLinks />
-      
-      <div className="space-y-2">
+    <div className="md:hidden bg-white py-4 px-6 border-t">
+      <div className="flex flex-col space-y-4">
+        <Button variant="ghost" onClick={() => navigate('/')}>
+          Home
+        </Button>
+        
+        <Button variant="ghost" onClick={() => navigate('/browse-gigs')}>
+          Browse Gigs
+        </Button>
+        
+        <Button variant="ghost" onClick={() => navigate('/how-it-works')}>
+          How It Works
+        </Button>
+        
         {isAuthenticated ? (
           <>
-            <div className="flex items-center space-x-2 py-2">
+            <div className="flex items-center space-x-3 py-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={userImage} alt={userName} />
+                <AvatarImage src={userImage} />
                 <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="font-medium text-gray-800">{userName}</span>
+              <span className="font-medium">{userName}</span>
             </div>
             
-            <div className="grid grid-cols-1 gap-2">
-              <Link to="/client-dashboard" className="w-full">
-                <Button variant="outline" className="w-full">Dashboard</Button>
-              </Link>
-              <Link to="/messaging" className="w-full">
-                <Button variant="outline" className="w-full">Messages</Button>
-              </Link>
-              <Link to="/wallet" className="w-full">
-                <Button variant="outline" className="w-full">Wallet</Button>
-              </Link>
-              <Button 
-                variant="outline" 
-                onClick={handleBecomeSeller}
-                className="w-full"
-              >
-                Become a Seller
+            <Button variant="ghost" onClick={() => navigate('/client-dashboard')}>
+              Dashboard
+            </Button>
+            
+            {canAccessAdminPanel && (
+              <Button variant="ghost" onClick={() => navigate('/admin')}>
+                Admin Console
               </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleLogout}
-                className="w-full"
-              >
-                Logout
+            )}
+            
+            {canAccessOpsPanel && (
+              <Button variant="ghost" onClick={() => navigate('/ops')}>
+                Ops Console
               </Button>
-            </div>
+            )}
+            
+            <Button variant="ghost" onClick={() => navigate('/messaging')}>
+              Messages
+            </Button>
+            
+            <Button variant="ghost" onClick={() => navigate('/user-profile')}>
+              Profile Settings
+            </Button>
+            
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
           </>
         ) : (
-          <div className="grid grid-cols-1 gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleBecomeSeller}
-              className="w-full"
-            >
+          <>
+            <Button variant="outline" onClick={() => navigate('/auth')}>
+              Log in
+            </Button>
+            
+            <Button onClick={handleBecomeSeller}>
               Become a Seller
             </Button>
-            <Button
-              variant="default"
-              onClick={handleBuyAndTry}
-              className="w-full"
-            >
-              Buy & Try
-            </Button>
-            <Link to="/auth" className="w-full">
-              <Button variant="secondary" className="w-full">Log In</Button>
-            </Link>
-          </div>
+          </>
         )}
       </div>
     </div>

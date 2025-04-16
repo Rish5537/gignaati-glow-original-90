@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -22,6 +23,7 @@ interface AuthContextValue {
   canAccessBrowseGigs: boolean;
   userProfile: any | null;
   createUser?: (email: string, password: string, role: UserRole, fullName?: string) => Promise<User | null>;
+  getRedirectPathForUser: () => string;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -170,6 +172,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canAccessOpsPanel = isOpsTeam || isAdmin;
   const canAccessClientDashboard = true;
   const canAccessBrowseGigs = true;
+  
+  // New function to determine the appropriate redirect path based on user roles
+  const getRedirectPathForUser = (): string => {
+    if (canAccessAdminPanel) {
+      return '/admin';
+    } else if (canAccessOpsPanel) {
+      return '/ops';
+    } else if (isCreator) {
+      return '/freelancer-dashboard';
+    } else {
+      return '/client-dashboard';
+    }
+  };
 
   const value: AuthContextValue = {
     user,
@@ -188,7 +203,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canAccessClientDashboard,
     canAccessBrowseGigs,
     userProfile,
-    createUser
+    createUser,
+    getRedirectPathForUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

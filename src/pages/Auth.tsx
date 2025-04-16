@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -23,7 +22,7 @@ const Auth = () => {
   const [authStep, setAuthStep] = useState<AuthStep>(initialTab);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const { user, userProfile, canAccessAdminPanel, canAccessOpsPanel } = useAuth();
+  const { user, userProfile, canAccessAdminPanel, getRedirectPathForUser } = useAuth();
   
   // Get return URL from query params or localStorage
   const returnUrl = searchParams.get("returnUrl") || localStorage.getItem("authRedirectUrl") || "/";
@@ -52,23 +51,15 @@ const Auth = () => {
       return;
     }
 
-    // Check if returnUrl is specified
+    // Check if returnUrl is specified and different from default
     if (savedReturnUrl && savedReturnUrl !== "/") {
       navigate(savedReturnUrl);
       return;
     }
 
-    // Otherwise redirect based on user role
-    if (canAccessAdminPanel) {
-      navigate("/admin");
-    } else if (canAccessOpsPanel) {
-      navigate("/ops");
-    } else if (userProfile?.role === "creator") {
-      navigate("/freelancer-dashboard");
-    } else {
-      // Default for buyers or users with no specific role
-      navigate("/client-dashboard");
-    }
+    // Otherwise redirect based on user role using the new getRedirectPathForUser function
+    const redirectPath = getRedirectPathForUser();
+    navigate(redirectPath);
   };
 
   const handleLoginSuccess = (data: { email: string, success: boolean, userId?: string }) => {
