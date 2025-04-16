@@ -1,51 +1,41 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
-// Import the custom RPC functions
-import { 
-  createOrdersTableIfNotExists, 
-  createPackagesTableIfNotExists, 
-  createTransactionsTableIfNotExists 
-} from 'supabase/functions/rpc';
+import { useCheckout } from '@/hooks/useCheckout';
+import CheckoutHeader from '@/components/checkout/CheckoutHeader';
+import BillingForm from '@/components/checkout/BillingForm';
+import PaymentForm from '@/components/checkout/PaymentForm';
+import OrderSummary from '@/components/checkout/OrderSummary';
+import CheckoutLoader from '@/components/checkout/CheckoutLoader';
 
 const Checkout = () => {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  
-  useEffect(() => {
-    const setupTables = async () => {
-      try {
-        // Create necessary tables if they don't exist
-        await createOrdersTableIfNotExists();
-        await createPackagesTableIfNotExists();
-        await createTransactionsTableIfNotExists();
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error setting up tables:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to set up the necessary tables',
-          variant: 'destructive',
-        });
-      }
-    };
-    
-    setupTables();
-  }, [toast]);
+  const {
+    isLoading,
+    selectedPackage,
+    gigTitle,
+    isProcessingPayment,
+    handlePaymentSubmit
+  } = useCheckout();
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-      
       {isLoading ? (
-        <div>Loading checkout...</div>
+        <CheckoutLoader />
       ) : (
-        <div>
-          {/* Checkout form would go here */}
-          <p>Checkout content will be implemented soon.</p>
-        </div>
+        <>
+          <CheckoutHeader />
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-6">
+              <BillingForm />
+              <PaymentForm 
+                onSubmit={handlePaymentSubmit} 
+                isProcessing={isProcessingPayment} 
+              />
+            </div>
+            <div className="h-fit">
+              <OrderSummary selectedPackage={selectedPackage} gigTitle={gigTitle} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
