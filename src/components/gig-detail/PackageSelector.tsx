@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PackageDetails {
   name: string;
@@ -24,39 +22,24 @@ interface PackageSelectorProps {
 
 const PackageSelector = ({ packages, defaultPackage = "training", gigId }: PackageSelectorProps) => {
   const [selectedPackage, setSelectedPackage] = useState(defaultPackage);
-  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   
-  // Check if user is authenticated
-  const checkAuth = async () => {
-    const { data } = await supabase.auth.getUser();
-    return !!data.user;
-  };
+  // Get user authentication status (in a real app, this would check your auth state)
+  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
   
-  const handleSelectPackage = async () => {
-    setIsProcessing(true);
-    
-    try {
-      const isAuthenticated = await checkAuth();
-      
-      if (isAuthenticated) {
-        // User is authenticated, proceed to checkout
-        navigate(`/checkout/${gigId}?package=${selectedPackage}`);
-      } else {
-        // User is not authenticated, redirect to auth with return URL
-        const returnUrl = `/checkout/${gigId}?package=${selectedPackage}`;
-        localStorage.setItem("authRedirectUrl", returnUrl);
-        navigate(`/auth?returnUrl=${encodeURIComponent(returnUrl)}`);
-      }
-    } catch (error) {
-      console.error("Error in package selection:", error);
+  const handleSelectPackage = () => {
+    if (isAuthenticated) {
+      // User is authenticated, proceed to checkout
       toast({
-        title: "Error",
-        description: "There was a problem processing your request",
-        variant: "destructive"
+        title: "Package selected!",
+        description: `You selected the ${packages[selectedPackage].name} package.`
       });
-    } finally {
-      setIsProcessing(false);
+      navigate(`/checkout/${gigId}?package=${selectedPackage}`);
+    } else {
+      // User is not authenticated, redirect to auth with return URL
+      const returnUrl = `/checkout/${gigId}?package=${selectedPackage}`;
+      localStorage.setItem("authRedirectUrl", returnUrl);
+      navigate(`/auth?returnUrl=${encodeURIComponent(returnUrl)}`);
     }
   };
 
@@ -93,16 +76,8 @@ const PackageSelector = ({ packages, defaultPackage = "training", gigId }: Packa
               <Button 
                 className="w-full bg-gignaati-coral hover:bg-red-500 mt-4"
                 onClick={handleSelectPackage}
-                disabled={isProcessing}
               >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Select & Continue'
-                )}
+                Select & Continue
               </Button>
             </TabsContent>
           ))}
