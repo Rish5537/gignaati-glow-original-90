@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from '@/hooks/use-toast';
 import Logo from './navbar/Logo';
 import NavLinks from './navbar/NavLinks';
 import DesktopButtons from './navbar/DesktopButtons';
@@ -9,36 +11,13 @@ import MobileMenu from './navbar/MobileMenu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [userImage, setUserImage] = useState('');
   const navigate = useNavigate();
-
-  // Check authentication status on mount and when localStorage changes
-  useEffect(() => {
-    const checkAuth = () => {
-      const authStatus = localStorage.getItem('isAuthenticated') === 'true';
-      setIsAuthenticated(authStatus);
-      
-      if (authStatus) {
-        // Get user data from localStorage if authenticated
-        const storedUserName = localStorage.getItem('userName') || 'User';
-        const storedUserImage = localStorage.getItem('userImage') || '';
-        setUserName(storedUserName);
-        setUserImage(storedUserImage);
-      }
-    };
-
-    // Initial check
-    checkAuth();
-
-    // Listen for storage events (in case another tab changes auth status)
-    window.addEventListener('storage', checkAuth);
-    
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
+  const { user, signOut } = useAuth();
+  
+  // Derived state from auth context
+  const isAuthenticated = !!user;
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const userImage = user?.user_metadata?.avatar_url || '';
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -49,21 +28,31 @@ const Navbar = () => {
   };
 
   const handleBuyAndTry = () => {
-    // If not authenticated, redirect to auth page and set return URL
     if (!isAuthenticated) {
-      localStorage.setItem('authRedirectUrl', '/');
+      localStorage.setItem('authRedirectUrl', '/browse-gigs');
       navigate('/auth');
+      return;
     }
+    
+    navigate('/browse-gigs');
   };
 
-  const handleLogout = () => {
-    // Clear authentication status and user data
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userImage');
-    setIsAuthenticated(false);
-    setUserName('');
-    setUserImage('');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+      });
+    }
   };
 
   return (

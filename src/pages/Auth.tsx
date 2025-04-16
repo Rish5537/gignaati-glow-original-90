@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -7,7 +6,6 @@ import SignupForm from "@/components/auth/SignupForm";
 import MFASetup from "@/components/auth/MFASetup";
 import AuthFooter from "@/components/auth/AuthFooter";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 enum AuthStep {
@@ -40,7 +38,7 @@ const Auth = () => {
         handleRoleBasedRedirection();
       }
     }
-  }, [user, userRoles]);
+  }, [user, userRoles, authStep]);
 
   const handleRoleBasedRedirection = () => {
     // Clear the stored redirect URL to prevent future redirects
@@ -51,6 +49,12 @@ const Auth = () => {
     if (savedReturnUrl && savedReturnUrl.includes("/admin")) {
       console.log("Redirecting to admin with new user:", user?.id);
       navigate(`/admin?newUserId=${user?.id}`);
+      return;
+    }
+
+    // Check if returnUrl is specified
+    if (savedReturnUrl && savedReturnUrl !== "/") {
+      navigate(savedReturnUrl);
       return;
     }
 
@@ -70,15 +74,7 @@ const Auth = () => {
   const handleLoginSuccess = (data: { email: string, success: boolean, userId?: string }) => {
     if (data.success) {
       setEmail(data.email);
-      setUserId(data.userId || data.email);
-      localStorage.setItem("isAuthenticated", "true");
-      
-      // Set default user name if not already set
-      if (!localStorage.getItem("userName")) {
-        const username = data.email.split("@")[0];
-        localStorage.setItem("userName", username);
-        localStorage.setItem("userEmail", data.email);
-      }
+      setUserId(data.userId || "");
       
       // For normal flow - proceed to MFA or handle role-based redirect
       setAuthStep(AuthStep.MFA);
@@ -90,13 +86,10 @@ const Auth = () => {
   };
 
   const handleMFAComplete = () => {
-    localStorage.setItem("isAuthenticated", "true");
     handleRoleBasedRedirection();
   };
 
   const handleMFACancel = () => {
-    // Even on cancel, we'll consider the user authenticated for demo purposes
-    localStorage.setItem("isAuthenticated", "true");
     handleRoleBasedRedirection();
   };
 

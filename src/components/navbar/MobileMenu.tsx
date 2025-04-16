@@ -1,9 +1,8 @@
 
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link } from "react-router-dom";
-import NavLinks from "./NavLinks";
-import { useNavigate } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import NavLinks from './NavLinks';
 
 interface MobileMenuProps {
   isAuthenticated: boolean;
@@ -20,87 +19,71 @@ const MobileMenu = ({
   userImage,
   handleLogout,
   handleBuyAndTry,
-  handleBecomeSeller,
+  handleBecomeSeller
 }: MobileMenuProps) => {
-  const navigate = useNavigate();
-  
   return (
-    <div className="md:hidden bg-white p-4 border-t flex flex-col space-y-4">
+    <div className="md:hidden py-4 px-4 space-y-4 bg-white border-t">
       <NavLinks />
-
-      {isAuthenticated ? (
-        <>
-          <div className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
-            <Avatar className="h-9 w-9">
-              {userImage && <AvatarImage src={userImage} alt={userName} />}
-              <AvatarFallback className="bg-gray-100 text-primary">
-                {userName.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">{userName}</div>
-              <div className="text-xs text-gray-500">Logged in</div>
+      
+      <div className="space-y-2">
+        {isAuthenticated ? (
+          <>
+            <div className="flex items-center space-x-2 py-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={userImage} alt={userName} />
+                <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-gray-800">{userName}</span>
             </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              <Link to="/client-dashboard" className="w-full">
+                <Button variant="outline" className="w-full">Dashboard</Button>
+              </Link>
+              <Link to="/messaging" className="w-full">
+                <Button variant="outline" className="w-full">Messages</Button>
+              </Link>
+              <Link to="/wallet" className="w-full">
+                <Button variant="outline" className="w-full">Wallet</Button>
+              </Link>
+              <Button 
+                variant="outline" 
+                onClick={handleBecomeSeller}
+                className="w-full"
+              >
+                Become a Seller
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleLogout}
+                className="w-full"
+              >
+                Logout
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleBecomeSeller}
+              className="w-full"
+            >
+              Become a Seller
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleBuyAndTry}
+              className="w-full"
+            >
+              Buy & Try
+            </Button>
+            <Link to="/auth" className="w-full">
+              <Button variant="secondary" className="w-full">Log In</Button>
+            </Link>
           </div>
-
-          <Button 
-            variant="outline" 
-            className="w-full justify-center"
-            onClick={() => navigate('/client-dashboard')}
-          >
-            My Dashboard
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="w-full justify-center"
-            onClick={() => navigate('/messaging')}
-          >
-            Messages
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="w-full justify-center"
-            onClick={() => navigate('/admin')}
-          >
-            Admin Console
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="w-full justify-center"
-            onClick={handleBecomeSeller}
-          >
-            Become a Seller
-          </Button>
-          
-          <Button 
-            variant="destructive" 
-            className="w-full justify-center"
-            onClick={handleLogout}
-          >
-            Log out
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button 
-            variant="outline" 
-            className="w-full justify-center"
-            onClick={handleBecomeSeller}
-          >
-            Become a Seller
-          </Button>
-          
-          <Button 
-            className="w-full justify-center bg-black hover:bg-gray-800"
-            onClick={handleBuyAndTry}
-          >
-            Log In
-          </Button>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };
