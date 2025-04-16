@@ -3,7 +3,6 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { UserRole } from "@/services/types/rbac";
-import { getUserRoles } from "@/services/UserRoleService";
 
 interface AuthContextValue {
   user: User | null;
@@ -21,6 +20,7 @@ interface AuthContextValue {
   canAccessOpsPanel: boolean;
   canAccessClientDashboard: boolean;
   canAccessBrowseGigs: boolean;
+  userProfile: any | null;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,14 +40,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // If there's a valid user, fetch their roles
+        // If there's a valid user, fetch their profile and role
         if (session?.user) {
           // Use setTimeout to prevent recursion with Supabase client
           setTimeout(() => {
-            fetchUserRoles(session.user.id);
+            fetchUserProfile(session.user.id);
           }, 0);
         } else {
           setUserRoles([]);
+          setUserProfile(null);
         }
       }
     );
@@ -57,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserRoles(session.user.id);
+        fetchUserProfile(session.user.id);
       }
       setIsLoading(false);
     });
@@ -65,14 +67,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserRoles = async (userId: string) => {
+  const fetchUserProfile = async (userId: string) => {
     try {
-      // Use direct service for fetching roles to avoid recursion issues
-      const roles = await getUserRoles(userId);
-      setUserRoles(roles);
+      // Fetch user profile which now includes the role
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+      
+      setUserProfile(profile);
+      
+      // Set the role from the profile
+      if (profile && profile.role) {
+        setUserRoles([profile.role]);
+      } else {
+        setUserRoles([]);
+      }
+      
     } catch (error) {
-      console.error("Error fetching user roles:", error);
+      console.error("Error in fetchUserProfile:", error);
       setUserRoles([]);
+      setUserProfile(null);
     }
   };
 
@@ -86,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setUserRoles([]);
+    setUserProfile(null);
   };
 
   // Compute access permissions
@@ -116,7 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canAccessAdminPanel,
     canAccessOpsPanel,
     canAccessClientDashboard,
-    canAccessBrowseGigs
+    canAccessBrowseGigs,
+    userProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

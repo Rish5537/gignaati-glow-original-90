@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -22,23 +23,22 @@ const Auth = () => {
   const [authStep, setAuthStep] = useState<AuthStep>(initialTab);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const { user, userRoles, canAccessAdminPanel, canAccessOpsPanel } = useAuth();
+  const { user, userProfile, canAccessAdminPanel, canAccessOpsPanel } = useAuth();
   
   // Get return URL from query params or localStorage
   const returnUrl = searchParams.get("returnUrl") || localStorage.getItem("authRedirectUrl") || "/";
 
   useEffect(() => {
-    // Check if user is already logged in
-    if (user) {
-      console.log("User already logged in, redirecting...", user);
-      console.log("User roles:", userRoles);
+    // Check if user is already logged in and profile is loaded
+    if (user && userProfile) {
+      console.log("User already logged in with profile, redirecting...", user, userProfile);
       
       // Only redirect if not in MFA step
       if (authStep !== AuthStep.MFA) {
         handleRoleBasedRedirection();
       }
     }
-  }, [user, userRoles, authStep]);
+  }, [user, userProfile, authStep]);
 
   const handleRoleBasedRedirection = () => {
     // Clear the stored redirect URL to prevent future redirects
@@ -63,7 +63,7 @@ const Auth = () => {
       navigate("/admin");
     } else if (canAccessOpsPanel) {
       navigate("/ops");
-    } else if (userRoles.includes("creator")) {
+    } else if (userProfile?.role === "creator") {
       navigate("/freelancer-dashboard");
     } else {
       // Default for buyers or users with no specific role

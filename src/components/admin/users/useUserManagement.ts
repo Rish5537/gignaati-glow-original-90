@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UserRole } from "@/services/types/rbac";
-import { setRole } from "@/services/UserRoleService";
 
 export const useUserManagement = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -39,10 +38,10 @@ export const useUserManagement = () => {
         throw authError;
       }
 
-      // Then get profiles
+      // Then get profiles with roles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, created_at');
+        .select('id, full_name, username, avatar_url, created_at, role');
       
       if (profilesError) {
         console.warn("Error fetching profiles:", profilesError);
@@ -55,29 +54,11 @@ export const useUserManagement = () => {
           profilesMap.set(profile.id, profile);
         });
       }
-
-      // Fix: Query user_roles directly instead of using RPC
-      let userRolesData: any[] = [];
-      try {
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id, role');
-        
-        if (!rolesError && userRoles) {
-          userRolesData = userRoles;
-        } else {
-          console.warn("Could not fetch user roles:", rolesError);
-        }
-      } catch (rolesFetchError) {
-        console.error("Error in user roles fetch:", rolesFetchError);
-      }
       
       // Combine all user data
       const usersWithDetails = authUsers.users.map((user: any) => {
         const profile = profilesMap.get(user.id) || {};
-        const roles = userRolesData
-          .filter((role: any) => role.user_id === user.id)
-          .map((role: any) => role.role);
+        const role = profile.role || 'buyer';
         
         return {
           id: user.id,
@@ -86,7 +67,7 @@ export const useUserManagement = () => {
           username: profile.username,
           avatar_url: profile.avatar_url,
           created_at: user.created_at,
-          roles
+          role: role
         };
       });
       
@@ -109,8 +90,8 @@ export const useUserManagement = () => {
   // Handle user role assignment
   const handleOpenRoleDialog = (user: any) => {
     setSelectedUser(user);
-    // Ensure the selected role is a valid UserRole type
-    setSelectedRole((user.roles?.length > 0 ? user.roles[0] : "buyer") as UserRole);
+    // Use the role from the user object
+    setSelectedRole((user.role || "buyer") as UserRole);
     setShowRoleDialog(true);
   };
   
@@ -118,10 +99,13 @@ export const useUserManagement = () => {
     if (!selectedUser || !selectedRole) return;
     
     try {
-      // Use the UserRoleService instead of direct query
-      const success = await setRole(selectedUser.id, selectedRole);
+      // Update the profile's role
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: selectedRole })
+        .eq('id', selectedUser.id);
       
-      if (!success) throw new Error("Failed to assign role");
+      if (error) throw error;
       
       toast({
         title: "Role assigned",
@@ -144,10 +128,13 @@ export const useUserManagement = () => {
   // New function for quick role change
   const handleQuickRoleChange = async (userId: string, role: UserRole) => {
     try {
-      // Use the UserRoleService instead of direct query
-      const success = await setRole(userId, role);
+      // Update the profile's role
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: role })
+        .eq('id', userId);
       
-      if (!success) throw new Error("Failed to update role");
+      if (error) throw error;
       
       const user = users.find(user => user.id === userId);
       toast({

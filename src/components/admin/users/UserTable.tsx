@@ -37,6 +37,16 @@ const UserTable: React.FC<UserTableProps> = ({
     return user.full_name;
   };
 
+  const getRoleClassName = (role: string) => {
+    switch (role) {
+      case 'admin': return "bg-red-100 text-red-800";
+      case 'moderator': return "bg-blue-100 text-blue-800";
+      case 'creator': return "bg-green-100 text-green-800";
+      case 'ops_team': return "bg-purple-100 text-purple-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -77,20 +87,13 @@ const UserTable: React.FC<UserTableProps> = ({
                 <td className="px-4 py-3">
                   {handleQuickRoleChange && isAdmin ? (
                     <Select
-                      defaultValue={user.roles?.length > 0 ? user.roles[0] : ""}
+                      defaultValue={user.role || "buyer"}
                       onValueChange={(value) => handleQuickRoleChange(user.id, value as UserRole)}
                     >
                       <SelectTrigger className="w-32 h-8 text-xs">
                         <SelectValue placeholder="Assign Role">
-                          <Badge className={
-                            user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
-                            user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
-                            user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
-                            user.roles?.includes('ops_team') ? "bg-purple-100 text-purple-800" :
-                            user.roles?.includes('buyer') ? "bg-gray-100 text-gray-800" :
-                            "bg-gray-100 text-gray-800"
-                          }>
-                            {user.roles?.length > 0 ? user.roles[0] : "No role"}
+                          <Badge className={getRoleClassName(user.role || "buyer")}>
+                            {user.role || "buyer"}
                           </Badge>
                         </SelectValue>
                       </SelectTrigger>
@@ -103,14 +106,8 @@ const UserTable: React.FC<UserTableProps> = ({
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge className={
-                      user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
-                      user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
-                      user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
-                      user.roles?.includes('ops_team') ? "bg-purple-100 text-purple-800" :
-                      "bg-gray-100 text-gray-800"
-                    }>
-                      {user.roles?.length > 0 ? user.roles[0] : "No role"}
+                    <Badge className={getRoleClassName(user.role || "buyer")}>
+                      {user.role || "buyer"}
                     </Badge>
                   )}
                 </td>
