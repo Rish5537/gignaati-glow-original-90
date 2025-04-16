@@ -34,7 +34,11 @@ export const getOpsAssignments = async (userId?: string): Promise<OpsAssignment[
   }
 
   return data.map(item => ({
-    ...item,
+    id: item.id,
+    user_id: item.user_id,
+    kra_id: item.kra_id,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
     kra: item.kras ? {
       id: item.kras.id,
       name: item.kras.name,

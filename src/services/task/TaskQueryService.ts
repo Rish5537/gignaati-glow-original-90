@@ -1,60 +1,84 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { OpsTask } from "../types/rbac";
 
-// Get tasks for ops team member or by KRA
-export const getOpsTasks = async (options?: { 
-  userId?: string, 
-  kraId?: string,
-  status?: string
-}): Promise<OpsTask[]> => {
+// Get tasks by status
+export const getTasksByStatus = async (status: string, kraId?: string) => {
   let query = supabase
-    .from('ops_tasks')
-    .select('*, profiles:assignee_id(*), kras:kra_id(*)');
+    .from('tasks')
+    .select(`
+      *,
+      assignee:assignee_id(id, full_name, avatar_url),
+      kra:kra_id(id, name)
+    `)
+    .eq('status', status);
 
-  if (options?.userId) {
-    query = query.eq('assignee_id', options.userId);
+  if (kraId) {
+    query = query.eq('kra_id', kraId);
   }
 
-  if (options?.kraId) {
-    query = query.eq('kra_id', options.kraId);
-  }
-  
-  if (options?.status) {
-    query = query.eq('status', options.status);
-  }
-
-  const { data, error } = await query.order('priority', { ascending: false });
+  const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching ops tasks:', error);
+    console.error('Error fetching tasks by status:', error);
     return [];
   }
 
-  return data.map(item => {
-    // Ensure status is strictly typed
-    const status = item.status as 'pending' | 'in_progress' | 'completed' | 'escalated';
-    const priority = item.priority as 'low' | 'medium' | 'high' | 'critical';
-    
-    // Type check and safely access profiles 
-    const profileData = item.profiles as Record<string, any> | null;
-    const kraData = item.kras as Record<string, any> | null;
-    
-    return {
-      ...item,
-      status,
-      priority,
-      assignee: profileData ? {
-        full_name: profileData.full_name as string || '',
-        avatar_url: profileData.avatar_url as string | null
-      } : undefined,
-      kra: kraData ? {
-        id: kraData.id,
-        name: kraData.name,
-        description: kraData.description,
-        created_at: kraData.created_at,
-        updated_at: kraData.updated_at
-      } : undefined
-    };
-  });
+  return data || [];
+};
+
+// Get task by id
+export const getTaskById = async (id: string) => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(`
+      *,
+      assignee:assignee_id(id, full_name, avatar_url),
+      reporter:reporter_id(id, full_name, avatar_url),
+      kra:kra_id(id, name)
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching task by id:', error);
+    return null;
+  }
+
+  return data;
+};
+
+// Get tasks by assignee
+export const getTasksByAssignee = async (assigneeId: string) => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(`
+      *,
+      assignee:assignee_id(id, full_name, avatar_url),
+      reporter:reporter_id(id, full_name, avatar_url),
+      kra:kra_id(id, name)
+    `)
+    .eq('assignee_id', assigneeId);
+
+  if (error) {
+    console.error('Error fetching tasks by assignee:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Get task count by status
+export const getTaskCountByStatus = async () => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('status', { count: 'exact', head: false })
+    .limit(1);
+
+  if (error) {
+    console.error('Error fetching task count by status:', error);
+    return {};
+  }
+
+  // Count would be in the response as data.count
+  return data || {};
 };

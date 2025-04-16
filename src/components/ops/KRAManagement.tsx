@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { KRA } from "@/services/types/rbac";
-import { getAllKRAs } from "@/services/KRAService";
-import { supabase } from "@/integrations/supabase/client";
+import { getAllKRAs, createKRA, updateKRA, deleteKRA } from "@/services/KRAService";
 import NewKRAForm from "./kra/NewKRAForm";
 import KRAList from "./kra/KRAList";
 
@@ -54,22 +53,18 @@ const KRAManagement = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('kras')
-        .insert({
-          name: newKRA.name,
-          description: newKRA.description || null
-        })
-        .select();
-
-      if (error) throw error;
-
-      setKRAs([...KRAs, data[0]]);
-      setIsAddingNew(false);
-      toast({
-        title: "Success",
-        description: "KRA added successfully",
-      });
+      const result = await createKRA(newKRA.name, newKRA.description);
+      
+      if (result) {
+        setKRAs([...KRAs, result]);
+        setIsAddingNew(false);
+        toast({
+          title: "Success",
+          description: "KRA added successfully",
+        });
+      } else {
+        throw new Error("Failed to create KRA");
+      }
     } catch (error) {
       console.error('Error adding KRA:', error);
       toast({
@@ -100,22 +95,24 @@ const KRAManagement = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('kras')
-        .update({
-          name: editKRA.name,
-          description: editKRA.description || null
-        })
-        .eq('id', id);
+      const success = await updateKRA(id, editKRA.name, editKRA.description);
 
-      if (error) throw error;
-
-      setKRAs(KRAs.map(kra => kra.id === id ? { ...kra, ...editKRA } : kra));
-      setEditingId(null);
-      toast({
-        title: "Success",
-        description: "KRA updated successfully",
-      });
+      if (success) {
+        setKRAs(KRAs.map(kra => kra.id === id ? { 
+          ...kra, 
+          name: editKRA.name, 
+          description: editKRA.description,
+          updated_at: new Date().toISOString()
+        } : kra));
+        
+        setEditingId(null);
+        toast({
+          title: "Success",
+          description: "KRA updated successfully",
+        });
+      } else {
+        throw new Error("Failed to update KRA");
+      }
     } catch (error) {
       console.error('Error updating KRA:', error);
       toast({
@@ -136,18 +133,17 @@ const KRAManagement = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('kras')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setKRAs(KRAs.filter(kra => kra.id !== id));
-      toast({
-        title: "Success",
-        description: "KRA deleted successfully",
-      });
+      const success = await deleteKRA(id);
+      
+      if (success) {
+        setKRAs(KRAs.filter(kra => kra.id !== id));
+        toast({
+          title: "Success",
+          description: "KRA deleted successfully",
+        });
+      } else {
+        throw new Error("Failed to delete KRA");
+      }
     } catch (error) {
       console.error('Error deleting KRA:', error);
       toast({
