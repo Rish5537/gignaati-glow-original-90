@@ -32,39 +32,60 @@ const APIKeyManagement = () => {
   }, []);
 
   const fetchAPIKeys = async () => {
-    const { data, error } = await supabase.from('api_keys').select('*');
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*');
+        
+      if (error) {
+        toast({ 
+          title: 'Error', 
+          description: `Failed to fetch API keys: ${error.message}`, 
+          variant: 'destructive' 
+        });
+      } else {
+        setAPIKeys(data as APIKey[] || []);
+      }
+    } catch (error) {
+      console.error('Error fetching API keys:', error);
       toast({ 
         title: 'Error', 
-        description: 'Failed to fetch API keys', 
+        description: 'An unexpected error occurred while fetching API keys', 
         variant: 'destructive' 
       });
-    } else {
-      setAPIKeys(data || []);
     }
   };
 
   const handleSaveAPIKey = async () => {
-    const { data, error } = await supabase
-      .from('api_keys')
-      .insert(newAPIKey)
-      .select();
-    
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .insert(newAPIKey)
+        .select();
+      
+      if (error) {
+        toast({ 
+          title: 'Error', 
+          description: `Failed to save API key: ${error.message}`, 
+          variant: 'destructive' 
+        });
+      } else {
+        toast({ title: 'Success', description: 'API Key saved successfully' });
+        fetchAPIKeys();
+        setNewAPIKey({
+          name: '',
+          key_value: '',
+          service: '',
+          environment: 'sandbox',
+          is_active: true
+        });
+      }
+    } catch (error) {
+      console.error('Error saving API key:', error);
       toast({ 
         title: 'Error', 
-        description: 'Failed to save API key', 
+        description: 'An unexpected error occurred', 
         variant: 'destructive' 
-      });
-    } else {
-      toast({ title: 'Success', description: 'API Key saved successfully' });
-      fetchAPIKeys();
-      setNewAPIKey({
-        name: '',
-        key_value: '',
-        service: '',
-        environment: 'sandbox',
-        is_active: true
       });
     }
   };
@@ -108,13 +129,24 @@ const APIKeyManagement = () => {
         </div>
         <div className="mt-4">
           <h3 className="font-semibold mb-2">Existing API Keys</h3>
-          {apiKeys.map(key => (
-            <div key={key.id} className="border p-2 mb-2">
-              <p>{key.name} - {key.service}</p>
-              <p>Environment: {key.environment}</p>
-              <p>Status: {key.is_active ? 'Active' : 'Inactive'}</p>
-            </div>
-          ))}
+          <div className="space-y-2">
+            {apiKeys.map(key => (
+              <div key={key.id} className="border p-3 rounded-md">
+                <div className="flex justify-between">
+                  <h4 className="font-medium">{key.name}</h4>
+                  <div className="flex gap-2">
+                    <span className={`text-xs px-2 py-1 rounded ${key.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {key.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {key.environment}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">{key.service}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>

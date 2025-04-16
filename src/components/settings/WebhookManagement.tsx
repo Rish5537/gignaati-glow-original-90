@@ -39,38 +39,59 @@ const WebhookManagement = () => {
   }, []);
 
   const fetchWebhooks = async () => {
-    const { data, error } = await supabase.from('webhooks').select('*');
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('webhooks')
+        .select('*');
+        
+      if (error) {
+        toast({ 
+          title: 'Error', 
+          description: `Failed to fetch webhooks: ${error.message}`, 
+          variant: 'destructive' 
+        });
+      } else {
+        setWebhooks(data as Webhook[] || []);
+      }
+    } catch (error) {
+      console.error('Error fetching webhooks:', error);
       toast({ 
         title: 'Error', 
-        description: 'Failed to fetch webhooks', 
+        description: 'An unexpected error occurred while fetching webhooks', 
         variant: 'destructive' 
       });
-    } else {
-      setWebhooks(data || []);
     }
   };
 
   const handleSaveWebhook = async () => {
-    const { data, error } = await supabase
-      .from('webhooks')
-      .insert(newWebhook)
-      .select();
-    
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('webhooks')
+        .insert(newWebhook)
+        .select();
+      
+      if (error) {
+        toast({ 
+          title: 'Error', 
+          description: `Failed to save webhook: ${error.message}`, 
+          variant: 'destructive' 
+        });
+      } else {
+        toast({ title: 'Success', description: 'Webhook saved successfully' });
+        fetchWebhooks();
+        setNewWebhook({
+          name: '',
+          url: '',
+          events: [],
+          is_active: true
+        });
+      }
+    } catch (error) {
+      console.error('Error saving webhook:', error);
       toast({ 
         title: 'Error', 
-        description: 'Failed to save webhook', 
+        description: 'An unexpected error occurred', 
         variant: 'destructive' 
-      });
-    } else {
-      toast({ title: 'Success', description: 'Webhook saved successfully' });
-      fetchWebhooks();
-      setNewWebhook({
-        name: '',
-        url: '',
-        events: [],
-        is_active: true
       });
     }
   };
@@ -109,33 +130,49 @@ const WebhookManagement = () => {
           />
           
           <div>
-            <h4 className="mb-2">Select Events</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <h4 className="mb-3">Select Events</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {availableEvents.map(event => (
-                <div key={event} className="flex items-center space-x-2">
+                <div key={event} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
                   <Checkbox 
                     checked={newWebhook.events.includes(event)}
                     onCheckedChange={() => toggleEvent(event)}
+                    id={`event-${event}`}
                   />
-                  <span>{event}</span>
+                  <label htmlFor={`event-${event}`} className="text-sm cursor-pointer">{event}</label>
                 </div>
               ))}
             </div>
           </div>
           
-          <Button onClick={handleSaveWebhook}>Save Webhook</Button>
+          <Button onClick={handleSaveWebhook} className="w-full md:w-auto">Save Webhook</Button>
         </div>
         
-        <div className="mt-4">
-          <h3 className="font-semibold mb-2">Existing Webhooks</h3>
-          {webhooks.map(webhook => (
-            <div key={webhook.id} className="border p-2 mb-2">
-              <p>{webhook.name}</p>
-              <p>URL: {webhook.url}</p>
-              <p>Events: {webhook.events.join(', ')}</p>
-              <p>Status: {webhook.is_active ? 'Active' : 'Inactive'}</p>
-            </div>
-          ))}
+        <div className="mt-6">
+          <h3 className="font-semibold mb-3">Existing Webhooks</h3>
+          <div className="space-y-3">
+            {webhooks.map(webhook => (
+              <div key={webhook.id} className="border p-3 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-medium">{webhook.name}</h4>
+                  <span className={`text-xs px-2 py-1 rounded ${webhook.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {webhook.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">URL: {webhook.url}</p>
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500">Events:</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {webhook.events.map(event => (
+                      <span key={`${webhook.id}-${event}`} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                        {event}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
