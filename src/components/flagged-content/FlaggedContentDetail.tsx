@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -6,14 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { FlaggedContent } from '@/types/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CheckCircle, X } from 'lucide-react';
-
-interface EnhancedFlaggedContent extends FlaggedContent {
-  content_preview: string;
-  reporter_name: string;
-}
+import { EnhancedFlaggedContent } from '@/components/moderation/types';
 
 interface FlaggedContentDetailProps {
   content: EnhancedFlaggedContent;

@@ -1,4 +1,3 @@
-
 export interface Category {
   id: string;
   name: string;
@@ -67,9 +66,12 @@ export interface FlaggedContent {
   reporter_id: string;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
+  resolution?: string | null;
   created_at: string;
-  content_preview: string;
-  reporter_name: string;
+  updated_at?: string;
+  assignee_id?: string | null;
+  content_preview?: string;
+  reporter_name?: string;
 }
 
 export interface UserTrust {
