@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
@@ -47,7 +46,6 @@ const UserManagement: React.FC = () => {
     if (newUserId) {
       console.log("New user detected:", newUserId);
       
-      // Remove the parameter to prevent repeated handling
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('newUserId');
       navigate({ search: newSearchParams.toString() }, { replace: true });
@@ -57,17 +55,15 @@ const UserManagement: React.FC = () => {
         description: "Now you can assign a role to the new user."
       });
       
-      // Find the new user and open role dialog
-      fetchUsers().then((updatedUsers) => {
-        const newUser = updatedUsers.find(u => u.id === newUserId);
+      fetchUsers().then(() => {
+        const newUser = users.find(u => u.id === newUserId);
         if (newUser) {
           handleOpenRoleDialog(newUser);
         } else {
           console.log("Fetching users again to find the new user");
-          // If not found immediately, try again with a delay
           setTimeout(() => {
-            fetchUsers().then((retryUsers) => {
-              const newUserRetry = retryUsers.find(u => u.id === newUserId);
+            fetchUsers().then(() => {
+              const newUserRetry = users.find(u => u.id === newUserId);
               if (newUserRetry) {
                 handleOpenRoleDialog(newUserRetry);
               } else {
@@ -78,15 +74,14 @@ const UserManagement: React.FC = () => {
                 });
               }
             });
-          }, 1500);
+          }, 1000);
         }
       });
     }
-  }, [searchParams, navigate, handleOpenRoleDialog, fetchUsers]);
+  }, [searchParams, navigate, users, handleOpenRoleDialog, fetchUsers]);
 
   const handleAddUser = () => {
     console.log("Add User button clicked");
-    // Save current URL to return to after user creation
     localStorage.setItem("authRedirectUrl", "/admin");
     navigate('/auth?tab=signup');
     

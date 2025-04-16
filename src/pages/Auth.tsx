@@ -23,35 +23,37 @@ const Auth = () => {
   const [authStep, setAuthStep] = useState<AuthStep>(initialTab);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const { user, userRoles, canAccessAdminPanel, canAccessOpsPanel } = useAuth();
+  const { userRoles } = useAuth();
   
   // Get return URL from query params or localStorage
   const returnUrl = searchParams.get("returnUrl") || localStorage.getItem("authRedirectUrl") || "/";
 
   useEffect(() => {
     // Check if user is already logged in
-    if (user) {
-      // User is already logged in, redirect based on role
-      handleRoleBasedRedirection();
-    }
-  }, [user, userRoles]);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // User is already logged in, redirect based on role
+        handleRoleBasedRedirection();
+      }
+    };
+    
+    checkAuth();
+  }, [userRoles]);
 
   const handleRoleBasedRedirection = () => {
-    // Clear the stored redirect URL to prevent future redirects
-    const savedReturnUrl = localStorage.getItem("authRedirectUrl");
-    localStorage.removeItem("authRedirectUrl");
-
     // First check if there's a specific return URL (like when admin adds a user)
-    if (savedReturnUrl && savedReturnUrl.includes("/admin")) {
-      console.log("Redirecting to admin with new user:", user?.id);
-      navigate(`/admin?newUserId=${user?.id}`);
+    if (returnUrl && returnUrl !== "/") {
+      console.log("Redirecting to return URL:", returnUrl);
+      localStorage.removeItem("authRedirectUrl");
+      navigate(returnUrl);
       return;
     }
 
     // Otherwise redirect based on user role
-    if (canAccessAdminPanel) {
+    if (userRoles.includes("admin") || userRoles.includes("moderator")) {
       navigate("/admin");
-    } else if (canAccessOpsPanel) {
+    } else if (userRoles.includes("ops_team")) {
       navigate("/ops");
     } else if (userRoles.includes("creator")) {
       navigate("/freelancer-dashboard");
@@ -74,8 +76,38 @@ const Auth = () => {
         localStorage.setItem("userEmail", data.email);
       }
       
-      // For normal flow - proceed to MFA or handle role-based redirect
-      setAuthStep(AuthStep.MFA);
+      // Always check if this is an admin-initiated "Add User" flow
+      const adminAddUserFlow = returnUrl && returnUrl.includes("/admin");
+      
+      // For admin add user flow, skip MFA and redirect immediately
+      if (adminAddUserFlow) {
+        toast({
+          title: "User created successfully!",
+          description: "Redirecting back to admin console..."
+        });
+        
+        // Short delay to ensure data is saved
+        setTimeout(() => {
+          localStorage.removeItem("authRedirectUrl");
+          // Include the new user ID in the URL for the admin console to use
+          navigate(`/admin?newUserId=${data.userId}`);
+        }, 1000);
+      } else if (returnUrl && returnUrl !== "/") {
+        // For other return URLs
+        toast({
+          title: "Login successful!",
+          description: "Redirecting you to complete your action..."
+        });
+        localStorage.removeItem("authRedirectUrl");
+        navigate(returnUrl);
+      } else {
+        // Normal flow - check roles or proceed to MFA
+        if (userRoles.length > 0) {
+          handleRoleBasedRedirection();
+        } else {
+          setAuthStep(AuthStep.MFA);
+        }
+      }
     }
   };
 

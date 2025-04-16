@@ -3,7 +3,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { UserRole } from "@/services/types/rbac";
-import { getUserRoles } from "@/services/UserRoleService";
+import { getCurrentUserRoles } from "@/services/RBACService";
 
 interface AuthContextValue {
   user: User | null;
@@ -65,8 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRoles = async (userId: string) => {
     try {
-      // Use UserRoleService instead of direct query
-      const roles = await getUserRoles(userId);
+      const roles = await getCurrentUserRoles();
       setUserRoles(roles);
     } catch (error) {
       console.error("Error fetching user roles:", error);

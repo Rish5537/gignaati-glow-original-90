@@ -39,29 +39,30 @@ const SignupForm = ({ onToggleForm }: SignupFormProps) => {
         throw error;
       }
       
-      // Store user info
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userName", fullName || email.split("@")[0]);
-      localStorage.setItem("userEmail", email);
-      
       toast({
         title: "Account created!",
         description: "Your account has been created successfully.",
       });
       
+      // Store user info
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userName", fullName || email.split("@")[0]);
+      localStorage.setItem("userEmail", email);
+      
       // Check if this was initiated from admin "Add User"
       const authRedirectUrl = localStorage.getItem("authRedirectUrl");
+      console.log("Auth redirect URL:", authRedirectUrl);
       
       if (authRedirectUrl && authRedirectUrl.includes("/admin")) {
-        console.log("Admin add user flow detected, userId:", data.user?.id);
+        console.log("Admin add user flow detected");
         // Add the new user ID as a URL parameter so admin page can open role dialog
         navigate(`/admin?newUserId=${data.user?.id}`);
         localStorage.removeItem("authRedirectUrl");
       } else {
-        // Normal flow - redirect to MFA setup or main page
-        localStorage.setItem("newUserId", data.user?.id || "");
+        // Normal flow
         navigate("/");
       }
+      
     } catch (error: any) {
       console.error("Signup error:", error);
       toast({
@@ -69,7 +70,6 @@ const SignupForm = ({ onToggleForm }: SignupFormProps) => {
         description: error.message || "Please check your information and try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
