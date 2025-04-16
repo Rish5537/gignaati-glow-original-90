@@ -6,6 +6,7 @@ import SignupForm from "@/components/auth/SignupForm";
 import MFASetup from "@/components/auth/MFASetup";
 import AuthFooter from "@/components/auth/AuthFooter";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 enum AuthStep {
@@ -22,53 +23,88 @@ const Auth = () => {
   const [authStep, setAuthStep] = useState<AuthStep>(initialTab);
   const [email, setEmail] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const { user, userProfile, canAccessAdminPanel, getRedirectPathForUser } = useAuth();
+  const { userRoles } = useAuth();
   
   // Get return URL from query params or localStorage
   const returnUrl = searchParams.get("returnUrl") || localStorage.getItem("authRedirectUrl") || "/";
 
   useEffect(() => {
-    // Check if user is already logged in and profile is loaded
-    if (user && userProfile) {
-      console.log("User already logged in with profile, redirecting...", user, userProfile);
-      
-      // Only redirect if not in MFA step
-      if (authStep !== AuthStep.MFA) {
+    // Check if user is already logged in
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // User is already logged in, redirect based on role
         handleRoleBasedRedirection();
       }
-    }
-  }, [user, userProfile, authStep]);
+    };
+    
+    checkAuth();
+  }, [userRoles]);
 
   const handleRoleBasedRedirection = () => {
-    // Clear the stored redirect URL to prevent future redirects
-    const savedReturnUrl = localStorage.getItem("authRedirectUrl");
-    localStorage.removeItem("authRedirectUrl");
-
     // First check if there's a specific return URL (like when admin adds a user)
-    if (savedReturnUrl && savedReturnUrl.includes("/admin")) {
-      console.log("Redirecting to admin with new user:", user?.id);
-      navigate(`/admin?newUserId=${user?.id}`);
+    if (returnUrl && returnUrl !== "/") {
+      localStorage.removeItem("authRedirectUrl");
+      navigate(returnUrl);
       return;
     }
 
-    // Check if returnUrl is specified and different from default
-    if (savedReturnUrl && savedReturnUrl !== "/") {
-      navigate(savedReturnUrl);
-      return;
+    // Otherwise redirect based on user role
+    if (userRoles.includes("admin")) {
+      navigate("/admin");
+    } else if (userRoles.includes("creator")) {
+      navigate("/freelancer-dashboard");
+    } else if (userRoles.includes("ops_team")) {
+      navigate("/ops");
+    } else {
+      // Default for buyers or users with no specific role
+      navigate("/client-dashboard");
     }
-
-    // Otherwise redirect based on user role using the new getRedirectPathForUser function
-    const redirectPath = getRedirectPathForUser();
-    navigate(redirectPath);
   };
 
   const handleLoginSuccess = (data: { email: string, success: boolean, userId?: string }) => {
     if (data.success) {
       setEmail(data.email);
-      setUserId(data.userId || "");
+      setUserId(data.userId || data.email); // Use actual userId if available
+      localStorage.setItem("isAuthenticated", "true");
       
-      // For normal flow - proceed to MFA or handle role-based redirect
-      setAuthStep(AuthStep.MFA);
+      // Set default user name if not already set
+      if (!localStorage.getItem("userName")) {
+        const username = data.email.split("@")[0];
+        localStorage.setItem("userName", username);
+        localStorage.setItem("userEmail", data.email);
+      }
+      
+      // For demo purposes, we'll skip MFA when a return URL is specified
+      if (returnUrl && returnUrl !== "/") {
+        toast({
+          title: "Login successful!",
+          description: "Redirecting you to complete your action..."
+        });
+        
+        // If coming from admin user addition, wait briefly to make sure user data is saved
+        if (returnUrl.includes("/admin")) {
+          setTimeout(() => {
+            // Clear the stored return URL
+            localStorage.removeItem("authRedirectUrl");
+            // Redirect to the return URL
+            navigate(returnUrl);
+          }, 1000);
+        } else {
+          // Clear the stored return URL
+          localStorage.removeItem("authRedirectUrl");
+          // Redirect to the return URL
+          navigate(returnUrl);
+        }
+      } else {
+        // Check roles for redirection or proceed to MFA
+        if (userRoles.length > 0) {
+          handleRoleBasedRedirection();
+        } else {
+          // Normal flow - proceed to MFA
+          setAuthStep(AuthStep.MFA);
+        }
+      }
     }
   };
 
@@ -77,10 +113,13 @@ const Auth = () => {
   };
 
   const handleMFAComplete = () => {
+    localStorage.setItem("isAuthenticated", "true");
     handleRoleBasedRedirection();
   };
 
   const handleMFACancel = () => {
+    // Even on cancel, we'll consider the user authenticated for demo purposes
+    localStorage.setItem("isAuthenticated", "true");
     handleRoleBasedRedirection();
   };
 

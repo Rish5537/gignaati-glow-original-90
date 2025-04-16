@@ -19,7 +19,7 @@ export const useUserManagement = () => {
     if (userSearchTerm) {
       const filtered = users.filter(user => 
         user.full_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
-        user.email?.toLowerCase().includes(userSearchTerm.toLowerCase())
+        user.username?.toLowerCase().includes(userSearchTerm.toLowerCase())
       );
       setFilteredUsers(filtered);
     } else {
@@ -31,54 +31,40 @@ export const useUserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // First get users from auth.users table
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        throw authError;
-      }
-
-      // Then get profiles with roles
+      // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, created_at, role');
+        .select('id, full_name, username, avatar_url, created_at');
       
-      if (profilesError) {
-        console.warn("Error fetching profiles:", profilesError);
-      }
+      if (profilesError) throw profilesError;
       
-      // Map profiles to users
-      const profilesMap = new Map();
-      if (profiles) {
-        profiles.forEach((profile: any) => {
-          profilesMap.set(profile.id, profile);
-        });
-      }
+      // Fetch user roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
       
-      // Combine all user data
-      const usersWithDetails = authUsers.users.map((user: any) => {
-        const profile = profilesMap.get(user.id) || {};
-        const role = profile.role || 'buyer';
+      if (rolesError) throw rolesError;
+      
+      // Combine data
+      const usersWithRoles = profiles.map((profile: any) => {
+        const roles = userRoles
+          .filter((role: any) => role.user_id === profile.id)
+          .map((role: any) => role.role);
         
         return {
-          id: user.id,
-          email: user.email,
-          full_name: profile.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unnamed User',
-          username: profile.username,
-          avatar_url: profile.avatar_url,
-          created_at: user.created_at,
-          role: role
+          ...profile,
+          roles
         };
       });
       
-      setUsers(usersWithDetails);
-      setFilteredUsers(usersWithDetails);
-      return usersWithDetails;
+      setUsers(usersWithRoles);
+      setFilteredUsers(usersWithRoles);
+      return usersWithRoles;
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to load users data. Please refresh and try again.",
+        description: "Failed to load users data",
         variant: "destructive"
       });
       return [];
@@ -90,8 +76,8 @@ export const useUserManagement = () => {
   // Handle user role assignment
   const handleOpenRoleDialog = (user: any) => {
     setSelectedUser(user);
-    // Use the role from the user object
-    setSelectedRole((user.role || "buyer") as UserRole);
+    // Ensure the selected role is a valid UserRole type
+    setSelectedRole((user.roles?.length > 0 ? user.roles[0] : "buyer") as UserRole);
     setShowRoleDialog(true);
   };
   
@@ -99,17 +85,25 @@ export const useUserManagement = () => {
     if (!selectedUser || !selectedRole) return;
     
     try {
-      // Update the profile's role
+      // First delete existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', selectedUser.id);
+      
+      // Then add the new role, ensuring it's a valid UserRole
       const { error } = await supabase
-        .from('profiles')
-        .update({ role: selectedRole })
-        .eq('id', selectedUser.id);
+        .from('user_roles')
+        .insert({
+          user_id: selectedUser.id,
+          role: selectedRole as UserRole
+        });
       
       if (error) throw error;
       
       toast({
         title: "Role assigned",
-        description: `${selectedUser.full_name || selectedUser.email || 'User'} has been assigned the ${selectedRole} role.`
+        description: `${selectedUser.full_name || 'User'} has been assigned the ${selectedRole} role.`
       });
       
       // Refresh user data
@@ -119,36 +113,7 @@ export const useUserManagement = () => {
       console.error("Error assigning role:", error);
       toast({
         title: "Error",
-        description: "Failed to assign role. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // New function for quick role change
-  const handleQuickRoleChange = async (userId: string, role: UserRole) => {
-    try {
-      // Update the profile's role
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: role })
-        .eq('id', userId);
-      
-      if (error) throw error;
-      
-      const user = users.find(user => user.id === userId);
-      toast({
-        title: "Role updated",
-        description: `${user?.full_name || user?.email || 'User'} has been assigned the ${role} role.`
-      });
-      
-      // Refresh user data
-      fetchUsers();
-    } catch (error) {
-      console.error("Error changing role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update role. Please try again.",
+        description: "Failed to assign role",
         variant: "destructive"
       });
     }
@@ -178,7 +143,7 @@ export const useUserManagement = () => {
       console.error("Error deleting user:", error);
       toast({
         title: "Error",
-        description: "Failed to delete user. Please try again.",
+        description: "Failed to delete user",
         variant: "destructive"
       });
     }
@@ -198,7 +163,6 @@ export const useUserManagement = () => {
     fetchUsers,
     handleOpenRoleDialog,
     handleAssignRole,
-    handleDeleteUser,
-    handleQuickRoleChange
+    handleDeleteUser
   };
 };

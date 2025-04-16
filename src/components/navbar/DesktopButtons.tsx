@@ -1,6 +1,7 @@
 
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,17 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import { useNavigate } from 'react-router-dom';
-import { UserRole } from "@/services/types/rbac";
+import { useNavigate } from "react-router-dom";
 
 interface DesktopButtonsProps {
   isAuthenticated: boolean;
   userName: string;
-  userImage?: string;
-  userRoles?: UserRole[];
-  canAccessAdminPanel?: boolean;
-  canAccessOpsPanel?: boolean;
+  userImage: string;
   handleLogout: () => void;
   handleBuyAndTry: () => void;
   handleBecomeSeller: () => void;
@@ -29,9 +25,6 @@ const DesktopButtons = ({
   isAuthenticated,
   userName,
   userImage,
-  userRoles = [],
-  canAccessAdminPanel = false,
-  canAccessOpsPanel = false,
   handleLogout,
   handleBuyAndTry,
   handleBecomeSeller,
@@ -39,72 +32,68 @@ const DesktopButtons = ({
   const navigate = useNavigate();
   
   return (
-    <div className="hidden md:flex items-center space-x-4">
+    <div className="hidden md:flex space-x-4 items-center">
       {isAuthenticated ? (
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="default"
-            onClick={handleBuyAndTry}
+        <>
+          <Button 
+            onClick={handleBecomeSeller} 
+            variant="outline" 
+            className="font-medium"
           >
-            Browse Gigs
+            Become a Seller
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={userImage} />
-                  <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+              <Button variant="ghost" className="relative p-0 h-9 w-9 rounded-full">
+                <Avatar className="h-9 w-9">
+                  {userImage && <AvatarImage src={userImage} alt={userName} />}
+                  <AvatarFallback className="bg-gray-100 text-primary">
+                    {userName.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
-                <span className="hidden lg:inline">{userName}</span>
-                <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
               <DropdownMenuItem onClick={() => navigate('/client-dashboard')}>
                 Dashboard
               </DropdownMenuItem>
-              
-              {canAccessAdminPanel && (
-                <DropdownMenuItem onClick={() => navigate('/admin')}>
-                  Admin Console
-                </DropdownMenuItem>
-              )}
-              
-              {canAccessOpsPanel && (
-                <DropdownMenuItem onClick={() => navigate('/ops')}>
-                  Ops Console
-                </DropdownMenuItem>
-              )}
-              
               <DropdownMenuItem onClick={() => navigate('/messaging')}>
                 Messages
               </DropdownMenuItem>
-              
-              <DropdownMenuItem onClick={() => navigate('/user-profile')}>
-                Profile Settings
+              <DropdownMenuItem onClick={() => navigate('/wallet')}>
+                Wallet
               </DropdownMenuItem>
-              
+              <DropdownMenuItem onClick={() => navigate('/user-profile')}>
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/admin')}>
+                Admin Console
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              
               <DropdownMenuItem onClick={handleLogout}>
-                Logout
+                Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </>
       ) : (
         <>
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/auth')}
+          <Button 
+            onClick={handleBecomeSeller}
+            variant="outline" 
+            className="font-medium"
           >
-            Log in
+            Become a Seller
           </Button>
-          <Button onClick={handleBecomeSeller}>Become a Seller</Button>
+          <Button 
+            onClick={handleBuyAndTry}
+            className="bg-black hover:bg-gray-800"
+          >
+            Log In
+          </Button>
         </>
       )}
     </div>

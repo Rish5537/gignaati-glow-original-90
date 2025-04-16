@@ -1,16 +1,14 @@
 
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserRole } from "@/services/types/rbac";
+import { Link } from "react-router-dom";
+import NavLinks from "./NavLinks";
+import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   isAuthenticated: boolean;
   userName: string;
-  userImage?: string;
-  userRoles?: UserRole[];
-  canAccessAdminPanel?: boolean;
-  canAccessOpsPanel?: boolean;
+  userImage: string;
   handleLogout: () => void;
   handleBuyAndTry: () => void;
   handleBecomeSeller: () => void;
@@ -20,80 +18,89 @@ const MobileMenu = ({
   isAuthenticated,
   userName,
   userImage,
-  userRoles = [],
-  canAccessAdminPanel = false,
-  canAccessOpsPanel = false,
   handleLogout,
   handleBuyAndTry,
   handleBecomeSeller,
 }: MobileMenuProps) => {
   const navigate = useNavigate();
-
+  
   return (
-    <div className="md:hidden bg-white py-4 px-6 border-t">
-      <div className="flex flex-col space-y-4">
-        <Button variant="ghost" onClick={() => navigate('/')}>
-          Home
-        </Button>
-        
-        <Button variant="ghost" onClick={() => navigate('/browse-gigs')}>
-          Browse Gigs
-        </Button>
-        
-        <Button variant="ghost" onClick={() => navigate('/how-it-works')}>
-          How It Works
-        </Button>
-        
-        {isAuthenticated ? (
-          <>
-            <div className="flex items-center space-x-3 py-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={userImage} />
-                <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="font-medium">{userName}</span>
+    <div className="md:hidden bg-white p-4 border-t flex flex-col space-y-4">
+      <NavLinks />
+
+      {isAuthenticated ? (
+        <>
+          <div className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
+            <Avatar className="h-9 w-9">
+              {userImage && <AvatarImage src={userImage} alt={userName} />}
+              <AvatarFallback className="bg-gray-100 text-primary">
+                {userName.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">{userName}</div>
+              <div className="text-xs text-gray-500">Logged in</div>
             </div>
-            
-            <Button variant="ghost" onClick={() => navigate('/client-dashboard')}>
-              Dashboard
-            </Button>
-            
-            {canAccessAdminPanel && (
-              <Button variant="ghost" onClick={() => navigate('/admin')}>
-                Admin Console
-              </Button>
-            )}
-            
-            {canAccessOpsPanel && (
-              <Button variant="ghost" onClick={() => navigate('/ops')}>
-                Ops Console
-              </Button>
-            )}
-            
-            <Button variant="ghost" onClick={() => navigate('/messaging')}>
-              Messages
-            </Button>
-            
-            <Button variant="ghost" onClick={() => navigate('/user-profile')}>
-              Profile Settings
-            </Button>
-            
-            <Button variant="outline" onClick={handleLogout}>
-              Logout
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="outline" onClick={() => navigate('/auth')}>
-              Log in
-            </Button>
-            
-            <Button onClick={handleBecomeSeller}>
-              Become a Seller
-            </Button>
-          </>
-        )}
-      </div>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={() => navigate('/client-dashboard')}
+          >
+            My Dashboard
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={() => navigate('/messaging')}
+          >
+            Messages
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={() => navigate('/admin')}
+          >
+            Admin Console
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={handleBecomeSeller}
+          >
+            Become a Seller
+          </Button>
+          
+          <Button 
+            variant="destructive" 
+            className="w-full justify-center"
+            onClick={handleLogout}
+          >
+            Log out
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button 
+            variant="outline" 
+            className="w-full justify-center"
+            onClick={handleBecomeSeller}
+          >
+            Become a Seller
+          </Button>
+          
+          <Button 
+            className="w-full justify-center bg-black hover:bg-gray-800"
+            onClick={handleBuyAndTry}
+          >
+            Log In
+          </Button>
+        </>
+      )}
     </div>
   );
 };
