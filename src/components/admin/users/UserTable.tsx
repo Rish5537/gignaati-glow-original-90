@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UserCog, MessageSquare, Trash } from "lucide-react";
+import { UserCog, MessageSquare, Trash, Lock, Mail } from "lucide-react";
 import { UserRole } from "@/services/types/rbac";
 import { 
   Select,
@@ -11,6 +11,14 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow 
+} from "@/components/ui/table";
 
 interface UserTableProps {
   filteredUsers: any[];
@@ -49,27 +57,27 @@ const UserTable: React.FC<UserTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-            <th className="px-4 py-3">User</th>
-            <th className="px-4 py-3">Role</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Joined</th>
-            <th className="px-4 py-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Joined</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {filteredUsers.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+            <TableRow>
+              <TableCell colSpan={5} className="h-24 text-center text-gray-500">
                 No users matching your search
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
             filteredUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
+              <TableRow key={user.id} className="hover:bg-gray-50">
+                <TableCell>
                   <div className="flex items-center">
                     <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
                       {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : (user.email?.substring(0, 2) || "??").toUpperCase()}
@@ -79,12 +87,12 @@ const UserTable: React.FC<UserTableProps> = ({
                         {getUserDisplayName(user)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {user.username || 'No username'}
+                        {user.email || 'No email'}
                       </div>
                     </div>
                   </div>
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell>
                   {handleQuickRoleChange && isAdmin ? (
                     <Select
                       defaultValue={user.role || "buyer"}
@@ -110,48 +118,76 @@ const UserTable: React.FC<UserTableProps> = ({
                       {user.role || "buyer"}
                     </Badge>
                   )}
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell>
                   <Badge className="bg-green-100 text-green-800">
                     Active
                   </Badge>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                </TableCell>
+                <TableCell className="text-sm text-gray-600">
                   {new Date(user.created_at).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell>
                   <div className="flex items-center space-x-2">
                     {isAdmin && (
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => handleOpenRoleDialog(user)}
+                        title="Manage User Roles"
                       >
                         <UserCog className="h-4 w-4" />
                       </Button>
                     )}
+                    
                     {isAdmin && (
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        title="Reset Password"
+                      >
+                        <Lock className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    {isAdmin && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        title="Send Message"
+                      >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     )}
+                    
+                    {isAdmin && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        title="Send Email"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
                     {isAdmin && (
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         className="text-red-500 hover:text-red-700"
                         onClick={() => handleDeleteUser(user.id)}
+                        title="Delete User"
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 };

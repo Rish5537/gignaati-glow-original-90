@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import UserRoleDialog from "./UserRoleDialog";
 import UserTable from "./UserTable";
 import UserSearchBar from "./UserSearchBar";
 import UserTablePagination from "./UserTablePagination";
+import CreateUserDialog from "./CreateUserDialog";
 import { useUserManagement } from "./useUserManagement";
 import { toast } from "@/hooks/use-toast";
 import { UserRole } from "@/services/types/rbac";
@@ -30,10 +31,12 @@ const UserManagement: React.FC = () => {
     handleQuickRoleChange
   } = useUserManagement();
   
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, createUser } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -85,15 +88,35 @@ const UserManagement: React.FC = () => {
   }, [searchParams, navigate, handleOpenRoleDialog, fetchUsers]);
 
   const handleAddUser = () => {
-    console.log("Add User button clicked");
-    // Save current URL to return to after user creation
-    localStorage.setItem("authRedirectUrl", "/admin");
-    navigate('/auth?tab=signup');
-    
-    toast({
-      title: "Adding a new user",
-      description: "Please complete the signup form to add a new user"
-    });
+    // Open the create user dialog instead of redirecting to auth page
+    if (isAdmin && createUser) {
+      setShowCreateDialog(true);
+    } else {
+      // Fallback to old behavior if not admin or createUser not available
+      console.log("Add User button clicked");
+      // Save current URL to return to after user creation
+      localStorage.setItem("authRedirectUrl", "/admin");
+      navigate('/auth?tab=signup');
+      
+      toast({
+        title: "Adding a new user",
+        description: "Please complete the signup form to add a new user"
+      });
+    }
+  };
+
+  const handleCreateUser = async (email: string, password: string, role: UserRole, fullName: string) => {
+    if (createUser) {
+      const newUser = await createUser(email, password, role, fullName);
+      if (newUser) {
+        setShowCreateDialog(false);
+        await fetchUsers();
+        toast({
+          title: "Success",
+          description: `User ${email} created successfully with ${role} role.`
+        });
+      }
+    }
   };
 
   return (
@@ -136,6 +159,12 @@ const UserManagement: React.FC = () => {
         selectedRole={selectedRole}
         setSelectedRole={setSelectedRole}
         onAssignRole={handleAssignRole}
+      />
+
+      <CreateUserDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreateUser={handleCreateUser}
       />
     </>
   );

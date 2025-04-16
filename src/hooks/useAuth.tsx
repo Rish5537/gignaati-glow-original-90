@@ -1,8 +1,8 @@
-
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { UserRole } from "@/services/types/rbac";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextValue {
   user: User | null;
@@ -21,6 +21,7 @@ interface AuthContextValue {
   canAccessClientDashboard: boolean;
   canAccessBrowseGigs: boolean;
   userProfile: any | null;
+  createUser?: (email: string, password: string, role: UserRole, fullName?: string) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -33,16 +34,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Update state with session information
         setSession(session);
         setUser(session?.user ?? null);
         
-        // If there's a valid user, fetch their profile and role
         if (session?.user) {
-          // Use setTimeout to prevent recursion with Supabase client
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
@@ -53,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -69,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Fetch user profile which now includes the role
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -83,11 +78,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUserProfile(profile);
       
-      // Set the role from the profile
       if (profile && profile.role) {
         setUserRoles([profile.role]);
       } else {
         setUserRoles([]);
+      }
+      
+      const { data: additionalRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+        
+      if (rolesError) {
+        console.error("Error fetching additional roles:", rolesError);
+        return;
+      }
+      
+      if (additionalRoles && additionalRoles.length > 0) {
+        const existingRoles = new Set(userRoles);
+        additionalRoles.forEach(roleObj => existingRoles.add(roleObj.role));
+        setUserRoles(Array.from(existingRoles));
       }
       
     } catch (error) {
@@ -97,7 +107,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Simple helper to check if user has a given role
+  const createUser = async (email: string, password: string, role: UserRole, fullName?: string): Promise<User | null> => {
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can create new users",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email,
+          password,
+          role,
+          full_name: fullName
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "New user created successfully"
+      });
+      
+      return data.user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      toast({
+        title: "Error",
+        description: `Failed to create user: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
   const hasRole = (role: UserRole) => {
     return userRoles.includes(role);
   };
@@ -110,18 +160,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserProfile(null);
   };
 
-  // Compute access permissions
   const isAdmin = hasRole('admin');
   const isModerator = hasRole('moderator');
   const isOpsTeam = hasRole('ops_team');
   const isCreator = hasRole('creator');
   const isBuyer = hasRole('buyer');
   
-  // Define access permissions
   const canAccessAdminPanel = isAdmin || isModerator;
   const canAccessOpsPanel = isOpsTeam || isAdmin;
-  const canAccessClientDashboard = true; // everyone can access this
-  const canAccessBrowseGigs = true; // everyone can access this
+  const canAccessClientDashboard = true;
+  const canAccessBrowseGigs = true;
 
   const value: AuthContextValue = {
     user,
@@ -139,7 +187,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canAccessOpsPanel,
     canAccessClientDashboard,
     canAccessBrowseGigs,
-    userProfile
+    userProfile,
+    createUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

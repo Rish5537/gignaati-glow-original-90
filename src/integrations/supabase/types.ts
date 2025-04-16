@@ -1057,6 +1057,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_user: {
+        Args: {
+          email: string
+          password: string
+          user_role?: Database["public"]["Enums"]["user_role"]
+          full_name?: string
+        }
+        Returns: string
+      }
       check_user_role: {
         Args: {
           user_id: string
