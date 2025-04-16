@@ -6,7 +6,7 @@ import { AuditLog } from "./types/rbac";
 export const logAuditEvent = async (
   action: string,
   resourceType: string,
-  resourceId: string | null,
+  resourceId: string,
   details: any
 ): Promise<string | null> => {
   try {

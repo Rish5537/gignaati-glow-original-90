@@ -1,70 +1,74 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
-import SocialLoginButtons from "./SocialLoginButtons";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 
 interface LoginFormProps {
-  onSuccess: (data: { email: string; success: boolean; userId?: string }) => void;
-  onToggleForm: () => void;
+  onSuccess?: (data: { email: string, success: boolean }) => void;
+  onToggleForm?: () => void;
 }
 
 const LoginForm = ({ onSuccess, onToggleForm }: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { toast } = useToast();
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
       
-      if (error) {
-        throw error;
+      if (error) throw error;
+      
+      toast({
+        title: "Success!",
+        description: "You have successfully logged in.",
+      });
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess({ email, success: true });
       }
-      
-      toast({
-        title: "Login successful!",
-        description: "You've been logged in successfully."
-      });
-      
-      // Pass user ID to the success handler
-      onSuccess({ 
-        email, 
-        success: true, 
-        userId: data.user?.id 
-      });
     } catch (error: any) {
-      console.error("Login error:", error);
       toast({
+        variant: "destructive",
         title: "Login failed",
-        description: error.message || "Please check your email and password.",
-        variant: "destructive"
+        description: error.message || "An error occurred during login",
       });
-      setIsLoading(false);
+      
+      // Call onSuccess with failure
+      if (onSuccess) {
+        onSuccess({ email, success: false });
+      }
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   return (
-    <div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSignIn}>
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
+          <Input 
+            id="email" 
+            type="email" 
+            placeholder="name@example.com" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -72,71 +76,74 @@ const LoginForm = ({ onSuccess, onToggleForm }: LoginFormProps) => {
         </div>
         
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex justify-between items-center">
             <Label htmlFor="password">Password</Label>
-            <Link to="/auth/forgot-password" className="text-xs text-primary hover:underline">
+            <Link 
+              to="/forgot-password" 
+              className="text-xs text-blue-600 hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="remember-me" 
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
+          <div className="relative">
+            <Input 
+              id="password" 
+              type={showPassword ? "text" : "password"} 
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
-            <Label htmlFor="remember-me" className="text-sm font-normal">Remember me</Label>
+            <button 
+              type="button"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
         
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
-              Logging in...
-            </div>
-          ) : (
-            "Log In"
-          )}
-        </Button>
-      </form>
-      
-      <div className="mt-4">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">or continue with</span>
-          </div>
-        </div>
-        
-        <SocialLoginButtons />
-      </div>
-      
-      <div className="text-center mt-6">
-        <p className="text-sm text-gray-600">
-          Don't have an account?{" "}
-          <button 
-            type="button" 
-            onClick={onToggleForm}
-            className="text-primary font-medium hover:underline"
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="remember" 
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+          />
+          <label 
+            htmlFor="remember" 
+            className="text-sm text-gray-500 cursor-pointer"
           >
-            Sign up
-          </button>
-        </p>
+            Remember me
+          </label>
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full bg-black hover:bg-gray-800"
+          disabled={loading}
+        >
+          {loading ? "Logging in..." : "Login"}
+        </Button>
+
+        <div className="mt-6">
+          <SocialLoginButtons />
+        </div>
+
+        <div className="text-center mt-4">
+          <p className="text-sm text-gray-500">
+            Don't have an account?{" "}
+            <button 
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={onToggleForm}
+            >
+              Sign up here
+            </button>
+          </p>
+        </div>
       </div>
-    </div>
+    </form>
   );
 };
 

@@ -1,2 +1,8 @@
 
-project_id = "elcrqksvfrqtfdmmaowu"
+project_id = "adyxxmugqctmxkqgskbv"
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.verify-payment]
+verify_jwt = true
