@@ -1,3 +1,4 @@
+
 export interface Category {
   id: string;
   name: string;
@@ -61,7 +62,7 @@ export interface DisputeEvent {
 
 export interface FlaggedContent {
   id: string;
-  content_type: 'gig' | 'message' | 'profile' | 'review';
+  content_type: string;
   content_id: string;
   reporter_id: string;
   reason: string;

@@ -13,9 +13,11 @@ export interface FlaggedContentItem {
   reporter?: {
     full_name: string | null;
   } | null;
+  assignee_id?: string | null;
 }
 
-export interface EnhancedFlaggedContent extends FlaggedContentItem {
+export interface EnhancedFlaggedContent extends Omit<FlaggedContentItem, 'content_type'> {
+  content_type: 'gig' | 'message' | 'profile' | 'review';
   content_preview: string;
   reporter_name: string;
 }

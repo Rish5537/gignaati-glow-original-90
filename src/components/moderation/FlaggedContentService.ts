@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedFlaggedContent, FlaggedContentItem } from './types';
+import { FlaggedContent } from '@/types/supabase';
 
 export async function fetchFlaggedContent(
   typeFilter: string, 
@@ -33,14 +34,23 @@ export async function fetchFlaggedContent(
   
   // Transform the data to match our enhanced interface
   const transformedData: EnhancedFlaggedContent[] = data?.map(item => {
+    const dbItem = item as unknown as FlaggedContent;
+    
     // Handle the reporter data safely
     const reporterData = item.reporter as { full_name: string | null } | null;
     
+    // Ensure content_type is one of the allowed values
+    let contentType: 'gig' | 'message' | 'profile' | 'review' = 'gig';
+    if (['gig', 'message', 'profile', 'review'].includes(dbItem.content_type)) {
+      contentType = dbItem.content_type as 'gig' | 'message' | 'profile' | 'review';
+    }
+    
     return {
-      ...item,
-      content_preview: 'Preview not available', // Default preview
+      ...dbItem,
+      content_type: contentType,
+      content_preview: dbItem.content_preview || 'Preview not available', 
       reporter_name: reporterData?.full_name || 'Unknown user',
-    };
+    } as EnhancedFlaggedContent;
   }) || [];
   
   return transformedData;
