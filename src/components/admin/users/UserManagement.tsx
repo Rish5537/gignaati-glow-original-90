@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Filter, UserPlus, UserCog, MessageSquare, Trash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import UserRoleDialog from "./UserRoleDialog";
 import { UserRole } from "@/services/types/rbac";
@@ -22,6 +22,7 @@ const UserManagement: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>("buyer");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin } = useAuth();
 
   // Load initial data
@@ -30,6 +31,31 @@ const UserManagement: React.FC = () => {
       fetchUsers();
     }
   }, [user]);
+  
+  // Check for newly added user via URL search params
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const newUserId = queryParams.get('newUserId');
+    
+    if (newUserId) {
+      // Clear the URL parameter
+      navigate('/admin', { replace: true });
+      
+      // Refresh users list to include the new user
+      fetchUsers().then(() => {
+        toast({
+          title: "User added",
+          description: "The new user has been added successfully. You can now assign a role."
+        });
+        
+        // Find the new user and open role dialog
+        const newUser = users.find(u => u.id === newUserId);
+        if (newUser) {
+          handleOpenRoleDialog(newUser);
+        }
+      });
+    }
+  }, [location.search]);
   
   // Search and filter functions
   useEffect(() => {
@@ -76,6 +102,7 @@ const UserManagement: React.FC = () => {
       
       setUsers(usersWithRoles);
       setFilteredUsers(usersWithRoles);
+      return usersWithRoles;
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -83,6 +110,7 @@ const UserManagement: React.FC = () => {
         description: "Failed to load users data",
         variant: "destructive"
       });
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -244,10 +272,10 @@ const UserManagement: React.FC = () => {
                             user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
                             user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
                             user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
-                            user.roles?.includes('employee') ? "bg-purple-100 text-purple-800" :
+                            user.roles?.includes('ops_team') ? "bg-purple-100 text-purple-800" :
                             "bg-gray-100 text-gray-800"
                           }>
-                            {user.roles?.length > 0 ? user.roles[0] : "User"}
+                            {user.roles?.length > 0 ? user.roles[0] : "No role"}
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
