@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthHeader from "@/components/auth/AuthHeader";
@@ -52,12 +51,12 @@ const Auth = () => {
     }
 
     // Otherwise redirect based on user role
-    if (userRoles.includes("admin")) {
+    if (userRoles.includes("admin") || userRoles.includes("moderator")) {
       navigate("/admin");
-    } else if (userRoles.includes("creator")) {
-      navigate("/freelancer-dashboard");
     } else if (userRoles.includes("ops_team")) {
       navigate("/ops");
+    } else if (userRoles.includes("creator")) {
+      navigate("/freelancer-dashboard");
     } else {
       // Default for buyers or users with no specific role
       navigate("/client-dashboard");

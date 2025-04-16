@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +33,7 @@ export const useUserManagement = () => {
       // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, created_at');
+        .select('id, full_name, username, avatar_url, created_at, email');
       
       if (profilesError) throw profilesError;
       
@@ -113,7 +112,7 @@ export const useUserManagement = () => {
       
       toast({
         title: "Role assigned",
-        description: `${selectedUser.full_name || 'User'} has been assigned the ${selectedRole} role.`
+        description: `${selectedUser.full_name || selectedUser.email || 'User'} has been assigned the ${selectedRole} role.`
       });
       
       // Refresh user data
@@ -124,6 +123,43 @@ export const useUserManagement = () => {
       toast({
         title: "Error",
         description: "Failed to assign role",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // New function for quick role change
+  const handleQuickRoleChange = async (userId: string, role: UserRole) => {
+    try {
+      // First delete existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+      
+      // Then add the new role
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: role
+        });
+      
+      if (error) throw error;
+      
+      const user = users.find(user => user.id === userId);
+      toast({
+        title: "Role updated",
+        description: `${user?.full_name || user?.email || 'User'} has been assigned the ${role} role.`
+      });
+      
+      // Refresh user data
+      fetchUsers();
+    } catch (error) {
+      console.error("Error changing role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update role",
         variant: "destructive"
       });
     }
@@ -173,6 +209,7 @@ export const useUserManagement = () => {
     fetchUsers,
     handleOpenRoleDialog,
     handleAssignRole,
-    handleDeleteUser
+    handleDeleteUser,
+    handleQuickRoleChange
   };
 };

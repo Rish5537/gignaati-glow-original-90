@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
@@ -9,6 +8,7 @@ import UserSearchBar from "./UserSearchBar";
 import UserTablePagination from "./UserTablePagination";
 import { useUserManagement } from "./useUserManagement";
 import { toast } from "@/hooks/use-toast";
+import { UserRole } from "@/services/types/rbac";
 
 const UserManagement: React.FC = () => {
   const {
@@ -25,7 +25,8 @@ const UserManagement: React.FC = () => {
     fetchUsers,
     handleOpenRoleDialog,
     handleAssignRole,
-    handleDeleteUser
+    handleDeleteUser,
+    handleQuickRoleChange
   } = useUserManagement();
   
   const navigate = useNavigate();
@@ -33,40 +34,33 @@ const UserManagement: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { user, isAdmin } = useAuth();
 
-  // Load initial data
   useEffect(() => {
     if (user) {
       fetchUsers();
     }
   }, [user]);
   
-  // Check for newly added user via URL search params
   useEffect(() => {
     const newUserId = searchParams.get('newUserId');
     
     if (newUserId) {
       console.log("New user detected:", newUserId);
       
-      // Clear the URL parameter without navigating
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('newUserId');
       navigate({ search: newSearchParams.toString() }, { replace: true });
       
-      // Show success toast
       toast({
         title: "User added successfully",
         description: "Now you can assign a role to the new user."
       });
       
-      // Refresh users list to include the new user
       fetchUsers().then(() => {
-        // Find the new user and open role dialog
         const newUser = users.find(u => u.id === newUserId);
         if (newUser) {
           handleOpenRoleDialog(newUser);
         } else {
           console.log("Fetching users again to find the new user");
-          // Retry once more after a delay
           setTimeout(() => {
             fetchUsers().then(() => {
               const newUserRetry = users.find(u => u.id === newUserId);
@@ -86,12 +80,9 @@ const UserManagement: React.FC = () => {
     }
   }, [searchParams, navigate, users, handleOpenRoleDialog, fetchUsers]);
 
-  // Handle add new user
   const handleAddUser = () => {
     console.log("Add User button clicked");
-    // Save redirect URL to return after auth
     localStorage.setItem("authRedirectUrl", "/admin");
-    // Redirect to auth page with signup tab
     navigate('/auth?tab=signup');
     
     toast({
@@ -122,6 +113,7 @@ const UserManagement: React.FC = () => {
               isAdmin={isAdmin}
               handleOpenRoleDialog={handleOpenRoleDialog}
               handleDeleteUser={handleDeleteUser}
+              handleQuickRoleChange={handleQuickRoleChange}
             />
           )}
           
