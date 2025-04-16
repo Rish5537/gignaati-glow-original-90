@@ -1,196 +1,127 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { UserRole, UserRoleAssignment } from "@/services/types/rbac";
-import { getAllUserRoles, assignRole, removeRole } from "@/services/RBACService";
-
-interface User {
-  id: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { UserRole, UserRoleAssignment } from '@/services/types/rbac';
 
 export const useUserRoleManagement = () => {
   const [userRoles, setUserRoles] = useState<UserRoleAssignment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchUserRoles();
   }, []);
 
-  useEffect(() => {
-    if (dialogOpen) {
-      fetchUsers();
-    }
-  }, [dialogOpen]);
-
-  useEffect(() => {
-    filterUsers();
-  }, [users, userSearchQuery]);
-
   const fetchUserRoles = async () => {
-    setIsLoading(true);
     try {
-      const roles = await getAllUserRoles();
-      setUserRoles(roles);
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          id,
+          user_id,
+          role,
+          created_at,
+          profiles:user_id (
+            id,
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      // Add a dummy updated_at field to satisfy the type
+      const rolesWithUpdatedAt = data.map((role: any) => ({
+        ...role,
+        updated_at: role.created_at // Using created_at as a fallback
+      }));
+
+      setUserRoles(rolesWithUpdatedAt as UserRoleAssignment[]);
     } catch (error) {
-      console.error("Error fetching user roles:", error);
+      console.error('Error fetching user roles:', error);
       toast({
-        title: "Error",
-        description: "Failed to load user roles. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load user roles',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
+  const addUserRole = async (userId: string, role: UserRole) => {
     try {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url');
-      
-      if (profilesError) throw profilesError;
-      
-      // Get user emails from auth.users through Supabase Edge Function or admin API in a real app
-      // For now, we'll just use placeholder emails based on user IDs
-      
-      const usersWithEmails = profiles.map(profile => ({
-        id: profile.id,
-        email: `user-${profile.id.substring(0, 6)}@example.com`,
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url,
-      }));
-      
-      setUsers(usersWithEmails);
-      setFilteredUsers(usersWithEmails);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please try again.",
-        variant: "destructive",
+      const { error } = await supabase.from('user_roles').insert({
+        user_id: userId,
+        role,
       });
-    }
-  };
 
-  const filterUsers = () => {
-    if (!userSearchQuery) {
-      setFilteredUsers([...users]);
-      return;
-    }
-    
-    const query = userSearchQuery.toLowerCase();
-    const filtered = users.filter(
-      user => 
-        user.email.toLowerCase().includes(query) ||
-        (user.full_name && user.full_name.toLowerCase().includes(query))
-    );
-    
-    setFilteredUsers(filtered);
-  };
-
-  const handleAddRole = async () => {
-    if (!selectedUser || !selectedRole) {
-      toast({
-        title: "Error",
-        description: "Please select both a user and a role.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      const success = await assignRole(selectedUser, selectedRole as UserRole);
-      
-      if (success) {
-        toast({
-          title: "Success",
-          description: `Role "${selectedRole}" assigned successfully.`,
-        });
-        
-        setDialogOpen(false);
-        fetchUserRoles();
-      } else {
-        throw new Error("Failed to assign role");
+      if (error) {
+        // Check for duplicate role error
+        if (error.code === '23505') {
+          toast({
+            title: 'Role already assigned',
+            description: 'This user already has this role assigned.',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        throw error;
       }
-    } catch (error) {
-      console.error("Error assigning role:", error);
+
       toast({
-        title: "Error",
-        description: "Failed to assign role. The user may already have this role.",
-        variant: "destructive",
+        title: 'Role added',
+        description: `The ${role} role has been assigned successfully.`,
       });
+
+      fetchUserRoles(); // Refresh the list
+      return true;
+    } catch (error) {
+      console.error('Error adding role:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add role',
+        variant: 'destructive',
+      });
+      return false;
     }
   };
 
-  const handleRemoveRole = async (roleId: string) => {
-    if (!confirm("Are you sure you want to remove this role?")) {
-      return;
-    }
-    
+  const removeUserRole = async (roleId: string) => {
     try {
-      const success = await removeRole(roleId);
-      
-      if (success) {
-        toast({
-          title: "Success",
-          description: "Role removed successfully.",
-        });
-        
-        setUserRoles(userRoles.filter(role => role.id !== roleId));
-      } else {
-        throw new Error("Failed to remove role");
+      const { error } = await supabase.from('user_roles').delete().eq('id', roleId);
+
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error("Error removing role:", error);
+
       toast({
-        title: "Error",
-        description: "Failed to remove role.",
-        variant: "destructive",
+        title: 'Role removed',
+        description: 'The role has been removed successfully.',
       });
+
+      setUserRoles((prev) => prev.filter((role) => role.id !== roleId));
+      return true;
+    } catch (error) {
+      console.error('Error removing role:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove role',
+        variant: 'destructive',
+      });
+      return false;
     }
   };
-
-  // Group roles by user_id for display
-  const groupedRoles: Record<string, UserRoleAssignment[]> = {};
-  userRoles.forEach(role => {
-    if (!groupedRoles[role.user_id]) {
-      groupedRoles[role.user_id] = [];
-    }
-    groupedRoles[role.user_id].push(role);
-  });
 
   return {
     userRoles,
     isLoading,
-    searchQuery,
-    setSearchQuery,
-    dialogOpen,
-    setDialogOpen,
-    users,
-    selectedUser,
-    setSelectedUser,
-    selectedRole,
-    setSelectedRole,
-    filteredUsers,
-    userSearchQuery,
-    setUserSearchQuery,
-    groupedRoles,
-    handleAddRole,
-    handleRemoveRole,
+    addUserRole,
+    removeUserRole,
+    refreshUserRoles: fetchUserRoles,
   };
 };
-
-export type { User };

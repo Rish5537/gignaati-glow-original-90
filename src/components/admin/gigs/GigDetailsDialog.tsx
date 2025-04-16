@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { GigWithProfile } from "@/hooks/useGigModeration";
 
 interface GigDetailsDialogProps {
   showDialog: boolean;
   setShowDialog: (show: boolean) => void;
-  selectedGig: any;
+  selectedGig: GigWithProfile | null;
   gigRequirements: string;
 }
 
