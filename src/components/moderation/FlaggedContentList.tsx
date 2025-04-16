@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,9 +30,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FlaggedContent } from '@/types/supabase';
 
-interface EnhancedFlaggedContent extends FlaggedContent {
+// Define a type for the reporter data from profiles table
+interface ReporterProfile {
+  full_name: string | null;
+}
+
+// Create an enhanced interface for the flagged content items
+interface EnhancedFlaggedContent extends Omit<FlaggedContent, 'reporter'> {
   content_preview: string;
   reporter_name: string;
+  // Overriding reporter field to handle Supabase's type
+  reporter?: ReporterProfile | null;
 }
 
 const FlaggedContentList = () => {
@@ -73,16 +82,20 @@ const FlaggedContentList = () => {
         throw error;
       }
       
-      const transformedData = data?.map(item => {
-        const reporterData = item.reporter as any;
+      // Transform the data to match our enhanced interface
+      const transformedData: EnhancedFlaggedContent[] = data?.map(item => {
+        // Handle the reporter data safely
+        const reporterData = item.reporter as ReporterProfile | null;
+        
         return {
           ...item,
-          content_preview: 'Preview not available',
-          reporter_name: reporterData?.full_name || 'Unknown user'
+          content_preview: 'Preview not available', // Default preview
+          reporter_name: reporterData?.full_name || 'Unknown user',
+          reporter: reporterData
         };
-      });
+      }) || [];
       
-      setFlaggedItems(transformedData as EnhancedFlaggedContent[]);
+      setFlaggedItems(transformedData);
     } catch (error) {
       console.error('Error fetching flagged content:', error);
       toast({
