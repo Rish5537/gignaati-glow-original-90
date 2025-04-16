@@ -282,6 +282,38 @@ export type Database = {
           },
         ]
       }
+      gig_requirements: {
+        Row: {
+          created_at: string | null
+          gig_id: string
+          id: string
+          requirements: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          gig_id: string
+          id?: string
+          requirements: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          gig_id?: string
+          id?: string
+          requirements?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_requirements_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gigs: {
         Row: {
           business_functions: string[] | null
@@ -507,6 +539,42 @@ export type Database = {
           template_type?: string
           updated_at?: string
           variables?: Json
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read_at: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -1,14 +1,13 @@
-
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
+import { 
   Activity,
   AlertTriangle,
   BarChart,
@@ -36,14 +35,394 @@ import {
   TrendingUp,
   User,
   Users,
-  Zap
+  Zap,
+  UserPlus,
+  Check,
+  X,
+  UserCog
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const AdminConsole = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+  
+  // User management
+  const [users, setUsers] = useState<any[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Gigs moderation
+  const [gigs, setGigs] = useState<any[]>([]);
+  const [gigSearchTerm, setGigSearchTerm] = useState("");
+  const [filteredGigs, setFilteredGigs] = useState<any[]>([]);
+  
+  // User role management
+  const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  
+  // Gig details dialog
+  const [showGigDetailsDialog, setShowGigDetailsDialog] = useState(false);
+  const [selectedGig, setSelectedGig] = useState<any>(null);
+  const [gigRequirements, setGigRequirements] = useState("");
+  
+  // Redirect to auth if not admin
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      if (user) {
+        const isUserAdmin = await checkIfUserIsAdmin(user.id);
+        if (!isUserAdmin) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access the admin console.",
+            variant: "destructive"
+          });
+          navigate('/');
+        }
+      } else {
+        // Not logged in
+        navigate('/auth');
+      }
+    };
+    
+    checkAdminAccess();
+  }, [user, navigate]);
+  
+  // Check if user is admin
+  const checkIfUserIsAdmin = async (userId: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase.rpc('has_role', { 
+        user_id: userId,
+        required_role: 'admin'
+      });
+      
+      return !!data;
+    } catch (error) {
+      console.error("Error checking admin role:", error);
+      return false;
+    }
+  };
+  
+  // Load initial data
+  useEffect(() => {
+    if (user) {
+      fetchUsers();
+      fetchGigs();
+    }
+  }, [user]);
+  
+  // Fetch users
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, created_at');
+      
+      if (profilesError) throw profilesError;
+      
+      // Fetch user roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+      
+      if (rolesError) throw rolesError;
+      
+      // Combine data
+      const usersWithRoles = profiles.map((profile: any) => {
+        const roles = userRoles
+          .filter((role: any) => role.user_id === profile.id)
+          .map((role: any) => role.role);
+        
+        return {
+          ...profile,
+          roles
+        };
+      });
+      
+      setUsers(usersWithRoles);
+      setFilteredUsers(usersWithRoles);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Fetch gigs
+  const fetchGigs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gigs')
+        .select(`
+          id,
+          title,
+          price,
+          created_at,
+          freelancer_id,
+          profiles (id, full_name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Get gig requirements
+      const { data: requirementsData } = await supabase
+        .from('gig_requirements')
+        .select('gig_id, requirements');
+      
+      // Map requirements to gigs
+      const gigsWithRequirements = data.map((gig: any) => {
+        const requirement = requirementsData?.find((r: any) => r.gig_id === gig.id);
+        return {
+          ...gig,
+          requirements: requirement?.requirements || ''
+        };
+      });
+      
+      setGigs(gigsWithRequirements);
+      setFilteredGigs(gigsWithRequirements);
+    } catch (error) {
+      console.error("Error fetching gigs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load gigs data",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Search and filter functions
+  useEffect(() => {
+    if (userSearchTerm) {
+      const filtered = users.filter(user => 
+        user.full_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+        user.username?.toLowerCase().includes(userSearchTerm.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users);
+    }
+  }, [userSearchTerm, users]);
+  
+  useEffect(() => {
+    if (gigSearchTerm) {
+      const filtered = gigs.filter(gig => 
+        gig.title?.toLowerCase().includes(gigSearchTerm.toLowerCase()) || 
+        gig.profiles?.full_name?.toLowerCase().includes(gigSearchTerm.toLowerCase())
+      );
+      setFilteredGigs(filtered);
+    } else {
+      setFilteredGigs(gigs);
+    }
+  }, [gigSearchTerm, gigs]);
+  
+  // Handle user role assignment
+  const handleOpenRoleDialog = (user: any) => {
+    setSelectedUser(user);
+    setSelectedRole(user.roles?.length > 0 ? user.roles[0] : "user");
+    setShowRoleDialog(true);
+  };
+  
+  const handleAssignRole = async () => {
+    if (!selectedUser || !selectedRole) return;
+    
+    try {
+      // First delete existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', selectedUser.id);
+      
+      // Then add the new role
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: selectedUser.id,
+          role: selectedRole
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Role assigned",
+        description: `${selectedUser.full_name || 'User'} has been assigned the ${selectedRole} role.`
+      });
+      
+      // Refresh user data
+      fetchUsers();
+      setShowRoleDialog(false);
+    } catch (error) {
+      console.error("Error assigning role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign role",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle view gig details
+  const handleViewGigDetails = (gig: any) => {
+    setSelectedGig(gig);
+    setGigRequirements(gig.requirements || '');
+    setShowGigDetailsDialog(true);
+  };
+  
+  // Handle gig approval
+  const handleApproveGig = async (gig: any) => {
+    try {
+      // Check if user exists
+      const { data: user } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', gig.freelancer_id)
+        .single();
+      
+      if (!user) {
+        throw new Error("Creator not found");
+      }
+      
+      // Assign creator role to the user if not already assigned
+      const { data: hasCreatorRole } = await supabase.rpc('has_role', { 
+        user_id: gig.freelancer_id,
+        required_role: 'creator'
+      });
+      
+      if (!hasCreatorRole) {
+        await supabase
+          .from('user_roles')
+          .insert({
+            user_id: gig.freelancer_id,
+            role: 'creator'
+          });
+      }
+      
+      // Send notification to user
+      await supabase.from('notifications').insert({
+        user_id: gig.freelancer_id,
+        title: 'Gig Approved',
+        message: `Your gig "${gig.title}" has been approved and is now live.`,
+        related_entity_type: 'gig',
+        related_entity_id: gig.id
+      });
+      
+      toast({
+        title: "Gig approved",
+        description: `The gig "${gig.title}" has been approved and the creator has been notified.`
+      });
+      
+      // Refresh data
+      fetchUsers();
+      fetchGigs();
+    } catch (error) {
+      console.error("Error approving gig:", error);
+      toast({
+        title: "Error",
+        description: "Failed to approve gig",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle gig rejection
+  const handleRejectGig = async (gig: any) => {
+    try {
+      // Send notification to user
+      await supabase.from('notifications').insert({
+        user_id: gig.freelancer_id,
+        title: 'Gig Rejected',
+        message: `Your gig "${gig.title}" has been rejected. Please review and resubmit.`,
+        related_entity_type: 'gig',
+        related_entity_id: gig.id
+      });
+      
+      toast({
+        title: "Gig rejected",
+        description: `The gig "${gig.title}" has been rejected and the creator has been notified.`
+      });
+      
+      // Refresh data
+      fetchGigs();
+    } catch (error) {
+      console.error("Error rejecting gig:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reject gig",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle add new user
+  const handleAddUser = () => {
+    // Save redirect URL to return after auth
+    localStorage.setItem("authRedirectUrl", "/admin");
+    // Redirect to auth page
+    navigate('/auth');
+  };
+  
+  // Handle delete user
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.rpc('delete_user', { user_id: userId });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "User deleted",
+        description: "User has been successfully deleted"
+      });
+      
+      // Refresh users
+      fetchUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      });
+    }
+  };
+  
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -88,7 +467,7 @@ const AdminConsole = () => {
                     label="Gigs Moderation" 
                     active={activeTab === "gigs"} 
                     onClick={() => setActiveTab("gigs")} 
-                    badge="12"
+                    badge={filteredGigs.length.toString()}
                   />
                   <SidebarItem 
                     icon={<Flag size={18} />} 
@@ -162,14 +541,14 @@ const AdminConsole = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <StatCard 
                     title="Total Users" 
-                    value="4,287"
+                    value={users.length.toString()}
                     change="+12% from last month"
                     trend="up"
                     icon={<Users className="h-5 w-5 text-blue-500" />}
                   />
                   <StatCard 
                     title="Active Gigs" 
-                    value="1,432"
+                    value={gigs.length.toString()}
                     change="+8% from last month"
                     trend="up"
                     icon={<FileText className="h-5 w-5 text-green-500" />}
@@ -323,101 +702,116 @@ const AdminConsole = () => {
                       <Input
                         placeholder="Search users..."
                         className="max-w-xs"
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
                       />
                       <Button variant="outline" size="sm">
                         <Filter className="h-4 w-4 mr-1" />
                         Filter
                       </Button>
-                      <Button className="bg-black hover:bg-gray-800">
-                        <User className="h-4 w-4 mr-1" />
+                      <Button 
+                        className="bg-black hover:bg-gray-800"
+                        onClick={handleAddUser}
+                      >
+                        <UserPlus className="h-4 w-4 mr-1" />
                         Add User
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                            <th className="px-4 py-3">User</th>
-                            <th className="px-4 py-3">Role</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Joined</th>
-                            <th className="px-4 py-3">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="px-4 py-3">
-                                <div className="flex items-center">
-                                  <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
-                                    {["JD", "SW", "RK", "AM", "TL"][i]}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">
-                                      {["John Doe", "Sarah Wilson", "Robert Kim", "Alice Miller", "Tom Lee"][i]}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {[
-                                        "john@example.com", 
-                                        "sarah@example.com", 
-                                        "robert@example.com", 
-                                        "alice@example.com", 
-                                        "tom@example.com"
-                                      ][i]}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge className={
-                                  i === 0 ? "bg-red-100 text-red-800" : 
-                                  i === 1 ? "bg-blue-100 text-blue-800" : 
-                                  "bg-gray-100 text-gray-800"
-                                }>
-                                  {i === 0 ? "Admin" : i === 1 ? "Moderator" : "User"}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge className={
-                                  i === 3 ? "bg-yellow-100 text-yellow-800" : 
-                                  "bg-green-100 text-green-800"
-                                }>
-                                  {i === 3 ? "Pending" : "Active"}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-600">
-                                {[
-                                  "Jan 10, 2023", 
-                                  "Mar 5, 2023", 
-                                  "Apr 22, 2023", 
-                                  "May 15, 2023", 
-                                  "June 3, 2023"
-                                ][i]}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center space-x-2">
-                                  <Button variant="ghost" size="sm">
-                                    <Sliders className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm">
-                                    <MessageSquare className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
-                                    <Trash className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </td>
+                    {isLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              <th className="px-4 py-3">User</th>
+                              <th className="px-4 py-3">Role</th>
+                              <th className="px-4 py-3">Status</th>
+                              <th className="px-4 py-3">Joined</th>
+                              <th className="px-4 py-3">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {filteredUsers.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                                  {userSearchTerm ? "No users matching your search" : "No users found"}
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredUsers.map((user, i) => (
+                                <tr key={user.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center">
+                                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
+                                        {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : "??"}
+                                      </div>
+                                      <div>
+                                        <div className="font-medium">
+                                          {user.full_name || 'Unnamed User'}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {user.username || 'No username'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Badge className={
+                                      user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
+                                      user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
+                                      user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
+                                      user.roles?.includes('employee') ? "bg-purple-100 text-purple-800" :
+                                      "bg-gray-100 text-gray-800"
+                                    }>
+                                      {user.roles?.length > 0 ? user.roles[0] : "User"}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Badge className="bg-green-100 text-green-800">
+                                      Active
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-600">
+                                    {new Date(user.created_at).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center space-x-2">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => handleOpenRoleDialog(user)}
+                                      >
+                                        <UserCog className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="sm">
+                                        <MessageSquare className="h-4 w-4" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-red-500 hover:text-red-700"
+                                        onClick={() => handleDeleteUser(user.id)}
+                                      >
+                                        <Trash className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                     
                     <div className="flex items-center justify-between mt-4">
                       <div className="text-sm text-gray-500">
-                        Showing 1-5 of 103 users
+                        Showing {filteredUsers.length} of {users.length} users
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button variant="outline" size="sm" disabled>
@@ -440,6 +834,8 @@ const AdminConsole = () => {
                       <Input
                         placeholder="Search gigs..."
                         className="max-w-xs"
+                        value={gigSearchTerm}
+                        onChange={(e) => setGigSearchTerm(e.target.value)}
                       />
                       <Button variant="outline" size="sm">
                         <Filter className="h-4 w-4 mr-1" />
@@ -449,21 +845,24 @@ const AdminConsole = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {[
-                        { title: "AI Chatbot Developer", type: "New", creator: "John Smith", date: "Today at 10:23 AM" },
-                        { title: "Custom GPT Model Training", type: "Updated", creator: "Sarah Lee", date: "Today at 09:15 AM" },
-                        { title: "Data Scraping Automation", type: "Reported", creator: "Mike Johnson", date: "Yesterday at 4:30 PM" },
-                        { title: "AI-Powered Email Campaigns", type: "New", creator: "Alice Williams", date: "Yesterday at 2:45 PM" },
-                        { title: "Neural Network Design", type: "New", creator: "David Chen", date: "Yesterday at 11:20 AM" },
-                      ].map((gig, i) => (
-                        <ModerateGigItem 
-                          key={i}
-                          title={gig.title}
-                          type={gig.type as "New" | "Updated" | "Reported"}
-                          creator={gig.creator}
-                          date={gig.date}
-                        />
-                      ))}
+                      {filteredGigs.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          {gigSearchTerm ? "No gigs matching your search" : "No gigs found"}
+                        </div>
+                      ) : (
+                        filteredGigs.map((gig) => (
+                          <ModerateGigItem 
+                            key={gig.id}
+                            title={gig.title}
+                            type="New"
+                            creator={gig.profiles?.full_name || "Unknown Creator"}
+                            date={new Date(gig.created_at).toLocaleDateString()}
+                            onViewDetails={() => handleViewGigDetails(gig)}
+                            onApprove={() => handleApproveGig(gig)}
+                            onReject={() => handleRejectGig(gig)}
+                          />
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -519,260 +918,3 @@ const AdminConsole = () => {
               </TabsContent>
               
               <TabsContent value="analytics" className="m-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Analytics Dashboard</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground text-center">This tab is under development.</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </div>
-      
-      <footer className="bg-white border-t py-4">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-gray-500">
-              Admin Console v1.2.0 | Last updated: April 14, 2025
-            </p>
-            <div className="flex items-center space-x-4 mt-2 md:mt-0">
-              <Link to="/admin/help" className="text-sm text-gray-500 hover:text-gray-800">Help</Link>
-              <Link to="/admin/security" className="text-sm text-gray-500 hover:text-gray-800">Security</Link>
-              <Link to="/admin/changelog" className="text-sm text-gray-500 hover:text-gray-800">Changelog</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
-const SidebarItem = ({ 
-  icon, 
-  label, 
-  active, 
-  onClick, 
-  badge 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  active: boolean; 
-  onClick: () => void; 
-  badge?: string; 
-}) => {
-  return (
-    <button 
-      onClick={onClick}
-      className={`flex items-center justify-between w-full px-4 py-2 text-sm rounded-md hover:bg-gray-100 ${
-        active ? "bg-gray-100 font-medium" : "text-gray-700"
-      }`}
-    >
-      <div className="flex items-center">
-        <span className="mr-3">{icon}</span>
-        <span>{label}</span>
-      </div>
-      {badge && (
-        <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 text-xs font-medium text-white bg-red-500 rounded-full">
-          {badge}
-        </span>
-      )}
-    </button>
-  );
-};
-
-const StatCard = ({ 
-  title, 
-  value, 
-  change,
-  trend,
-  icon 
-}: { 
-  title: string; 
-  value: string; 
-  change: string;
-  trend: "up" | "down";
-  icon: React.ReactNode; 
-}) => {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="bg-gray-100 p-2 rounded-md">
-            {icon}
-          </div>
-          <div className={`flex items-center text-xs font-medium ${
-            trend === "up" ? "text-green-500" : "text-red-500"
-          }`}>
-            <span>{change}</span>
-            {trend === "up" ? (
-              <ChevronUp className="h-4 w-4 ml-1" />
-            ) : (
-              <ChevronDown className="h-4 w-4 ml-1" />
-            )}
-          </div>
-        </div>
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const HealthItem = ({ 
-  name, 
-  status, 
-  metric, 
-  description 
-}: { 
-  name: string; 
-  status: "healthy" | "warning" | "critical"; 
-  metric: string; 
-  description: string; 
-}) => {
-  const statusColors = {
-    healthy: "text-green-500",
-    warning: "text-amber-500",
-    critical: "text-red-500"
-  };
-  
-  const statusIcons = {
-    healthy: <ShieldCheck className="h-5 w-5 text-green-500" />,
-    warning: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-    critical: <AlertTriangle className="h-5 w-5 text-red-500" />
-  };
-  
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50">
-      <div className="flex items-center">
-        <div className="mr-3">
-          {statusIcons[status]}
-        </div>
-        <div>
-          <p className="font-medium">{name}</p>
-          <p className="text-sm text-gray-500">{description}</p>
-        </div>
-      </div>
-      <div className="flex items-center">
-        <div className="text-right">
-          <p className={`font-medium ${statusColors[status]}`}>
-            {status === "healthy" ? "Healthy" : 
-             status === "warning" ? "Warning" : 
-             "Critical"}
-          </p>
-          <p className="text-sm text-gray-500">{metric}</p>
-        </div>
-        <Button variant="ghost" size="sm" className="ml-2">
-          <Zap className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-interface ModerateGigProps {
-  title: string;
-  type: "New" | "Updated" | "Reported";
-  creator: string;
-  date: string;
-}
-
-const ModerateGigItem = ({ 
-  title, 
-  type, 
-  creator, 
-  date 
-}: ModerateGigProps) => {
-  const badgeColors = {
-    New: "bg-blue-100 text-blue-800",
-    Updated: "bg-amber-100 text-amber-800",
-    Reported: "bg-red-100 text-red-800"
-  };
-  
-  return (
-    <div className="border rounded-lg p-4 hover:bg-gray-50">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-        <div>
-          <div className="flex items-center mb-2">
-            <Badge className={badgeColors[type]}>
-              {type}
-            </Badge>
-            <span className="text-sm text-gray-500 ml-2">{date}</span>
-          </div>
-          <h3 className="font-medium">{title}</h3>
-          <p className="text-sm text-gray-500">Created by {creator}</p>
-        </div>
-        
-        <div className="flex mt-3 sm:mt-0">
-          <Button variant="outline" className="mr-2" size="sm">
-            View Details
-          </Button>
-          <Button className="bg-green-600 hover:bg-green-700 mr-2" size="sm">
-            <ThumbsUp className="h-4 w-4 mr-1" />
-            Approve
-          </Button>
-          <Button variant="destructive" size="sm">
-            <ThumbsDown className="h-4 w-4 mr-1" />
-            Reject
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface FeatureFlagProps {
-  name: string;
-  description: string;
-  enabled: boolean;
-}
-
-const FeatureFlagItem = ({ 
-  name, 
-  description, 
-  enabled 
-}: FeatureFlagProps) => {
-  const [isEnabled, setIsEnabled] = useState(enabled);
-  
-  return (
-    <div className="flex items-center justify-between p-4 border rounded-lg">
-      <div>
-        <h3 className="font-medium">{name}</h3>
-        <p className="text-sm text-gray-500">{description}</p>
-      </div>
-      <div className="flex items-center space-x-8">
-        <div className="text-sm text-gray-500">
-          {isEnabled ? (
-            <Badge className="bg-green-100 text-green-800">
-              Enabled
-            </Badge>
-          ) : (
-            <Badge variant="outline">
-              Disabled
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={isEnabled}
-            onCheckedChange={setIsEnabled}
-            id={`feature-${name.toLowerCase().replace(/\s+/g, '-')}`}
-          />
-          <Label 
-            htmlFor={`feature-${name.toLowerCase().replace(/\s+/g, '-')}`}
-            className="sr-only"
-          >
-            Toggle {name}
-          </Label>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default AdminConsole;
