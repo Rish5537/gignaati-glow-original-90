@@ -54,6 +54,7 @@ const UserRoleDialog: React.FC<UserRoleDialogProps> = ({
                 <SelectItem value="moderator">Moderator</SelectItem>
                 <SelectItem value="ops_team">Employee</SelectItem>
                 <SelectItem value="buyer">User</SelectItem>
+                <SelectItem value="creator">Creator</SelectItem>
               </SelectContent>
             </Select>
             
@@ -62,6 +63,7 @@ const UserRoleDialog: React.FC<UserRoleDialogProps> = ({
               {selectedRole === 'moderator' && 'Moderators can review and manage content.'}
               {selectedRole === 'ops_team' && 'Operations team members have access to internal tools.'}
               {selectedRole === 'buyer' && 'Regular users with standard permissions.'}
+              {selectedRole === 'creator' && 'Content creators with publishing privileges.'}
             </p>
           </div>
         </div>

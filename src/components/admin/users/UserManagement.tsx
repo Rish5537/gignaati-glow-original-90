@@ -19,7 +19,7 @@ const UserManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [selectedRole, setSelectedRole] = useState<UserRole>("user");
+  const [selectedRole, setSelectedRole] = useState<UserRole>("buyer");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
@@ -92,7 +92,7 @@ const UserManagement: React.FC = () => {
   const handleOpenRoleDialog = (user: any) => {
     setSelectedUser(user);
     // Ensure the selected role is a valid UserRole type
-    setSelectedRole((user.roles?.length > 0 ? user.roles[0] : "user") as UserRole);
+    setSelectedRole((user.roles?.length > 0 ? user.roles[0] : "buyer") as UserRole);
     setShowRoleDialog(true);
   };
   
