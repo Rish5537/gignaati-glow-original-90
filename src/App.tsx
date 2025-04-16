@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import Navbar from './components/Navbar';
@@ -69,9 +70,8 @@ const App = () => {
         <ScrollToTop />
         <Footer />
         <Toaster />
-      </Routes>
-    </BrowserRouter>
-  </div>
+      </BrowserRouter>
+    </div>
   );
 };
 
