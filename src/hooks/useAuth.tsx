@@ -17,10 +17,6 @@ interface AuthContextValue {
   isModerator: boolean;
   hasRole: (role: UserRole) => boolean;
   signOut: () => Promise<void>;
-  canAccessAdminPanel: boolean;
-  canAccessOpsPanel: boolean;
-  canAccessClientDashboard: boolean;
-  canAccessBrowseGigs: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -81,35 +77,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  // Compute access permissions
-  const isAdmin = hasRole('admin');
-  const isModerator = hasRole('moderator');
-  const isOpsTeam = hasRole('ops_team');
-  const isCreator = hasRole('creator');
-  const isBuyer = hasRole('buyer');
-  
-  // Define access permissions
-  const canAccessAdminPanel = isAdmin || isModerator;
-  const canAccessOpsPanel = isOpsTeam || isAdmin;
-  const canAccessClientDashboard = true; // everyone can access this
-  const canAccessBrowseGigs = true; // everyone can access this
-
   const value: AuthContextValue = {
     user,
     session,
     userRoles,
     isLoading,
-    isAdmin,
-    isOpsTeam,
-    isCreator,
-    isBuyer,
-    isModerator,
+    isAdmin: hasRole('admin'),
+    isOpsTeam: hasRole('ops_team'),
+    isCreator: hasRole('creator'),
+    isBuyer: hasRole('buyer'),
+    isModerator: hasRole('moderator'),
     hasRole,
-    signOut,
-    canAccessAdminPanel,
-    canAccessOpsPanel,
-    canAccessClientDashboard,
-    canAccessBrowseGigs
+    signOut
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

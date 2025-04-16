@@ -4,20 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserCog, MessageSquare, Trash } from "lucide-react";
 import { UserRole } from "@/services/types/rbac";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
 
 interface UserTableProps {
   filteredUsers: any[];
   isAdmin: boolean;
   handleOpenRoleDialog: (user: any) => void;
   handleDeleteUser: (userId: string) => void;
-  handleQuickRoleChange?: (userId: string, role: UserRole) => Promise<void>;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
@@ -25,18 +17,7 @@ const UserTable: React.FC<UserTableProps> = ({
   isAdmin,
   handleOpenRoleDialog,
   handleDeleteUser,
-  handleQuickRoleChange
 }) => {
-  const getUserDisplayName = (user: any) => {
-    // If user has no full_name, use their email instead of "Unnamed User"
-    if (!user.full_name || user.full_name.trim() === '') {
-      // Extract email from user object or generate placeholder
-      const email = user.email || user.username || `user-${user.id.substring(0, 6)}@example.com`;
-      return email;
-    }
-    return user.full_name;
-  };
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -62,11 +43,11 @@ const UserTable: React.FC<UserTableProps> = ({
                 <td className="px-4 py-3">
                   <div className="flex items-center">
                     <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
-                      {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : (user.email?.substring(0, 2) || "??").toUpperCase()}
+                      {user.full_name ? user.full_name.substring(0, 2).toUpperCase() : "??"}
                     </div>
                     <div>
                       <div className="font-medium">
-                        {getUserDisplayName(user)}
+                        {user.full_name || 'Unnamed User'}
                       </div>
                       <div className="text-xs text-gray-500">
                         {user.username || 'No username'}
@@ -75,44 +56,15 @@ const UserTable: React.FC<UserTableProps> = ({
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  {handleQuickRoleChange && isAdmin ? (
-                    <Select
-                      defaultValue={user.roles?.length > 0 ? user.roles[0] : ""}
-                      onValueChange={(value) => handleQuickRoleChange(user.id, value as UserRole)}
-                    >
-                      <SelectTrigger className="w-32 h-8 text-xs">
-                        <SelectValue placeholder="Assign Role">
-                          <Badge className={
-                            user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
-                            user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
-                            user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
-                            user.roles?.includes('ops_team') ? "bg-purple-100 text-purple-800" :
-                            user.roles?.includes('buyer') ? "bg-gray-100 text-gray-800" :
-                            "bg-gray-100 text-gray-800"
-                          }>
-                            {user.roles?.length > 0 ? user.roles[0] : "No role"}
-                          </Badge>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="moderator">Moderator</SelectItem>
-                        <SelectItem value="buyer">User</SelectItem>
-                        <SelectItem value="ops_team">Ops</SelectItem>
-                        <SelectItem value="creator">Creator</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={
-                      user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
-                      user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
-                      user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
-                      user.roles?.includes('ops_team') ? "bg-purple-100 text-purple-800" :
-                      "bg-gray-100 text-gray-800"
-                    }>
-                      {user.roles?.length > 0 ? user.roles[0] : "No role"}
-                    </Badge>
-                  )}
+                  <Badge className={
+                    user.roles?.includes('admin') ? "bg-red-100 text-red-800" : 
+                    user.roles?.includes('moderator') ? "bg-blue-100 text-blue-800" : 
+                    user.roles?.includes('creator') ? "bg-green-100 text-green-800" :
+                    user.roles?.includes('ops_team') ? "bg-purple-100 text-purple-800" :
+                    "bg-gray-100 text-gray-800"
+                  }>
+                    {user.roles?.length > 0 ? user.roles[0] : "No role"}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3">
                   <Badge className="bg-green-100 text-green-800">
